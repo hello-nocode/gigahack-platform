@@ -24,6 +24,7 @@ const eventSchema = z.object({
   minTeamSize: z.coerce.number().int().min(1).max(10),
   maxTeamSize: z.coerce.number().int().min(1).max(20),
   maxChallengeApplications: z.coerce.number().int().min(1).max(10),
+  mentorSlotDuration: z.coerce.number().int().min(5).max(120).default(30),
   startsAt: z.string().optional(),
   endsAt: z.string().optional(),
   timezone: z.string().default("Europe/Chisinau"),

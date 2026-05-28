@@ -144,6 +144,19 @@ export function EventForm({ action, defaultValues, submitLabel = "Save Event" }:
         </div>
 
         <div className="space-y-1">
+          <label className="text-sm font-medium text-slate-300">Mentor Slot Duration (min)</label>
+          <Input
+            name="mentorSlotDuration"
+            type="number"
+            min={5}
+            max={120}
+            defaultValue={(defaultValues as { mentorSlotDuration?: number })?.mentorSlotDuration ?? 30}
+            className="border-slate-600 bg-slate-700/50 text-white"
+          />
+          <p className="text-xs text-slate-500">Duration of each mentoring session in minutes</p>
+        </div>
+
+        <div className="space-y-1">
           <label className="text-sm font-medium text-slate-300">Timezone</label>
           <Input
             name="timezone"

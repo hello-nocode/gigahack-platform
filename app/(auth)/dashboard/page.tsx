@@ -7,6 +7,7 @@ import { getPartnersForEvent } from "@/lib/actions/partners";
 import { getTeamsForEvent } from "@/lib/actions/teams";
 import { getRegistrationsForEvent } from "@/lib/actions/registrations";
 import { getTicketStats } from "@/lib/actions/tickets";
+import { getMentorsForEvent } from "@/lib/actions/mentors";
 import { isAdmin } from "@/lib/permissions";
 import { db } from "@db/index";
 import { partnerProfiles } from "@db/schema";
@@ -14,7 +15,7 @@ import { eq } from "drizzle-orm";
 import { EventSelector } from "@/components/dashboard/event-selector";
 import { EventStatusBadge } from "@/components/events/event-status-badge";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Plus, Pencil, Users, Building2, Lightbulb, Ticket, ClipboardList } from "lucide-react";
+import { CalendarDays, Plus, Pencil, Users, Building2, Lightbulb, Ticket, ClipboardList, GraduationCap } from "lucide-react";
 
 const STATUS_ORDER = ["registration_open", "applications_open", "in_progress", "judging", "draft", "completed"];
 
@@ -42,15 +43,16 @@ export default async function DashboardPage({
     const selectedSlug = eventSlugParam ?? defaultEvent?.slug ?? "";
     const event = selectedSlug ? await getEventBySlug(selectedSlug) : null;
 
-    const [partners, challenges, teams, registrations, ticketStats] = event
+    const [partners, challenges, teams, registrations, ticketStats, mentors] = event
       ? await Promise.all([
           getPartnersForEvent(event.id),
           getChallengesForEvent(event.id),
           getTeamsForEvent(event.id),
           getRegistrationsForEvent(event.id),
           getTicketStats(event.id),
+          getMentorsForEvent(event.id),
         ])
-      : [[], [], [], [], { total: 0, claimed: 0, unclaimed: 0 }];
+      : [[], [], [], [], { total: 0, claimed: 0, unclaimed: 0 }, []];
 
     const approvedRegistrations = registrations.filter((r) => r.status === "approved").length;
 
@@ -121,6 +123,7 @@ export default async function DashboardPage({
                   <StatCard icon={<Users className="h-4 w-4 text-violet-400" />} label="Teams" value={teams.length} href={`/events/${event.slug}/teams`} />
                   <StatCard icon={<Building2 className="h-4 w-4 text-amber-400" />} label="Partners" value={partners.length} href={`/events/${event.slug}/partners`} />
                   <StatCard icon={<Lightbulb className="h-4 w-4 text-rose-400" />} label="Challenges" value={challenges.length} href={`/events/${event.slug}/challenges`} />
+                  <StatCard icon={<GraduationCap className="h-4 w-4 text-teal-400" />} label="Mentors" value={mentors.length} href={`/events/${event.slug}/mentors`} />
                 </div>
               </div>
 
@@ -147,7 +150,12 @@ export default async function DashboardPage({
                   Challenges
                   <Badge>{challenges.length}</Badge>
                 </NavTab>
+                <NavTab href={`/events/${event.slug}/mentors`}>
+                  Mentors
+                  <Badge>{mentors.length}</Badge>
+                </NavTab>
                 <NavTab href={`/admin/events/${event.id}/invites`}>Invites</NavTab>
+                <NavTab href={`/admin/events/${event.id}/mentor-invites`}>Mentor Invites</NavTab>
                 <NavTab href={`/admin/events/${event.id}/status`}>Status</NavTab>
               </div>
             </>

@@ -3,9 +3,9 @@ import type { Route } from "next";
 import { auth, signOut } from "@/lib/auth/config";
 import { isAdmin } from "@/lib/permissions";
 import { db } from "@db/index";
-import { users, partnerProfiles, events, teamMembers, teams, eventRegistrations } from "@db/schema";
+import { users, partnerProfiles, mentorProfiles, events, teamMembers, teams, eventRegistrations } from "@db/schema";
 import { and, desc, eq, notInArray } from "drizzle-orm";
-import { UserCircle, LogOut, LayoutDashboard, CalendarDays, Shield, Building2, Users, Lightbulb } from "lucide-react";
+import { UserCircle, LogOut, LayoutDashboard, CalendarDays, Shield, Building2, Users, Lightbulb, GraduationCap } from "lucide-react";
 
 export async function TopBar() {
   const session = await auth();
@@ -13,7 +13,7 @@ export async function TopBar() {
 
   const userId = session.user.id;
 
-  const [admin, dbUser, partnerCount, myTeam, activeEvent] = await Promise.all([
+  const [admin, dbUser, partnerCount, myTeam, activeEvent, activeMentorProfile] = await Promise.all([
     isAdmin(userId),
     db.select({ globalRole: users.globalRole, firstName: users.firstName, lastName: users.lastName, name: users.name, email: users.email, image: users.image, avatarUrl: users.avatarUrl })
       .from(users).where(eq(users.id, userId)).then((r) => r[0] ?? null),
@@ -37,9 +37,22 @@ export async function TopBar() {
       .orderBy(desc(events.createdAt))
       .limit(1)
       .then((r) => r[0] ?? null),
+    db.select({ id: mentorProfiles.id, eventSlug: events.slug })
+      .from(mentorProfiles)
+      .innerJoin(events, eq(events.id, mentorProfiles.eventId))
+      .where(
+        and(
+          eq(mentorProfiles.userId, userId),
+          notInArray(events.status, ["draft", "completed"]),
+        ),
+      )
+      .orderBy(desc(events.createdAt))
+      .limit(1)
+      .then((r) => r[0] ?? null),
   ]);
 
   const isPartner = partnerCount > 0;
+  const isMentor = !!activeMentorProfile;
   const displayName = dbUser?.firstName && dbUser?.lastName
     ? `${dbUser.firstName} ${dbUser.lastName}`
     : dbUser?.name ?? dbUser?.email ?? "";
@@ -64,9 +77,6 @@ export async function TopBar() {
                 <NavLink href="/events" icon={<CalendarDays className="h-3.5 w-3.5" />}>
                   Events
                 </NavLink>
-                <NavLink href="/events/new" icon={<Shield className="h-3.5 w-3.5" />}>
-                  Admin
-                </NavLink>
               </>
             ) : activeEvent ? (
               <>
@@ -90,6 +100,11 @@ export async function TopBar() {
                 Events
               </NavLink>
             )}
+            {isMentor && activeMentorProfile && (
+              <NavLink href={`/events/${activeMentorProfile.eventSlug}/mentors/${activeMentorProfile.id}/schedule`} icon={<GraduationCap className="h-3.5 w-3.5" />}>
+                My Schedule
+              </NavLink>
+            )}
             {isPartner && (
               <NavLink href="/events" icon={<Building2 className="h-3.5 w-3.5" />}>
                 My Challenges
@@ -104,6 +119,10 @@ export async function TopBar() {
           {admin ? (
             <span className="hidden rounded-full bg-blue-600/30 px-2.5 py-0.5 text-xs font-semibold text-blue-300 sm:inline-flex items-center gap-1">
               <Shield className="h-3 w-3" /> Admin
+            </span>
+          ) : isMentor ? (
+            <span className="hidden rounded-full bg-teal-600/30 px-2.5 py-0.5 text-xs font-semibold text-teal-300 sm:inline-flex items-center gap-1">
+              <GraduationCap className="h-3 w-3" /> Mentor
             </span>
           ) : isPartner ? (
             <span className="hidden rounded-full bg-violet-600/30 px-2.5 py-0.5 text-xs font-semibold text-violet-300 sm:inline-flex items-center gap-1">

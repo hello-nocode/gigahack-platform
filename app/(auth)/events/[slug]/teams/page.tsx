@@ -48,7 +48,7 @@ export default async function TeamsPage({
         </div>
 
         <h1 className="mb-2 text-3xl font-bold">Teams</h1>
-        <p className="mb-8 text-slate-400">{teamList.length} teams registered</p>
+        <p className="mb-8 text-slate-400">{teamList.length} team{teamList.length !== 1 ? "s" : ""} registered</p>
 
         {userTeam && (
           <div className="mb-6 rounded-xl border border-blue-700/50 bg-blue-900/20 p-5">
@@ -65,14 +65,14 @@ export default async function TeamsPage({
           </div>
         )}
 
-        {teamList.length === 0 ? (
+        {teamList.filter((t) => t.id !== userTeam?.id).length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-700 p-16 text-center">
             <Users className="mx-auto mb-4 h-10 w-10 text-slate-600" />
             <p className="text-slate-400">No teams yet. Be the first!</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {teamList.map((team) => (
+            {teamList.filter((t) => t.id !== userTeam?.id).map((team) => (
               <div key={team.id} className="flex items-center justify-between rounded-xl border border-slate-700 bg-slate-800/50 px-6 py-4">
                 <div>
                   <p className="font-semibold">{team.name}</p>

@@ -4,6 +4,7 @@ import { getEventBySlug } from "@/lib/actions/events";
 import { getChallengesForEvent } from "@/lib/actions/challenges";
 import { getPartnersForEvent } from "@/lib/actions/partners";
 import { getTeamsForEvent } from "@/lib/actions/teams";
+import { getMentorsForEvent } from "@/lib/actions/mentors";
 import { getMyRegistration, getRegistrationsForEvent } from "@/lib/actions/registrations";
 import { getTicketStats } from "@/lib/actions/tickets";
 import { auth } from "@/lib/auth/config";
@@ -39,13 +40,14 @@ export default async function EventDetailPage({
         .then(r => r.length > 0)
     : false;
 
-  const [_partners, _challenges, _teamList, myRegistration, allRegistrations, ticketStats] = await Promise.all([
+  const [partners, challenges, teamList, myRegistration, allRegistrations, ticketStats, mentors] = await Promise.all([
     admin ? getPartnersForEvent(event.id) : Promise.resolve([]),
     admin ? getChallengesForEvent(event.id) : Promise.resolve([]),
     admin ? getTeamsForEvent(event.id) : Promise.resolve([]),
     getMyRegistration(event.id),
     admin && session?.user?.id ? getRegistrationsForEvent(event.id) : Promise.resolve([]),
     admin && session?.user?.id ? getTicketStats(event.id) : Promise.resolve({ total: 0, claimed: 0, unclaimed: 0 }),
+    getMentorsForEvent(event.id),
   ]);
 
   return (
@@ -140,9 +142,19 @@ export default async function EventDetailPage({
 
         {/* Secondary nav */}
         <div className="mt-4 flex flex-wrap gap-2">
-          <NavTab href={`/events/${slug}/partners`}>Partners</NavTab>
-          <NavTab href={`/events/${slug}/challenges`}>Challenges</NavTab>
-          <NavTab href={`/events/${slug}/teams`}>Teams</NavTab>
+          <NavTab href={`/events/${slug}/mentors`}>Mentors{admin && <span className="ml-1.5 rounded-full bg-slate-700 px-1.5 py-0.5 text-xs text-slate-300">{mentors.length}</span>}</NavTab>
+          <NavTab href={`/events/${slug}/partners`}>
+              Partners
+              {admin && <span className="ml-1.5 rounded-full bg-slate-700 px-1.5 py-0.5 text-xs text-slate-300">{partners.length}</span>}
+            </NavTab>
+          <NavTab href={`/events/${slug}/challenges`}>
+              Challenges
+              {admin && <span className="ml-1.5 rounded-full bg-slate-700 px-1.5 py-0.5 text-xs text-slate-300">{challenges.length}</span>}
+            </NavTab>
+          <NavTab href={`/events/${slug}/teams`}>
+              Teams
+              {admin && <span className="ml-1.5 rounded-full bg-slate-700 px-1.5 py-0.5 text-xs text-slate-300">{teamList.length}</span>}
+            </NavTab>
           {admin && (
             <>
               <NavTab href={`/events/${slug}/registrations`}>

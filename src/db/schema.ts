@@ -116,6 +116,7 @@ export const events = pgTable("events", {
   startsAt: timestamp("starts_at", { mode: "date" }),
   endsAt: timestamp("ends_at", { mode: "date" }),
   timezone: text("timezone").notNull().default("Europe/Chisinau"),
+  mentorSlotDuration: integer("mentor_slot_duration").notNull().default(30),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
 });
@@ -425,6 +426,99 @@ export const teamJoinRequests = pgTable(
   ],
 );
 
+// ── Mentor invites ──────────────────────────────────────────────────────────
+
+export const mentorInvites = pgTable("mentor_invites", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  eventId: uuid("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+  code: text("code").notNull().unique(),
+  createdBy: text("created_by")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  usedBy: text("used_by").references(() => users.id, { onDelete: "set null" }),
+  usedAt: timestamp("used_at", { mode: "date" }),
+  expiresAt: timestamp("expires_at", { mode: "date" }),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+// ── Mentor profiles ──────────────────────────────────────────────────────────
+
+export const mentorProfiles = pgTable(
+  "mentor_profiles",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    firstName: text("first_name").notNull().default(""),
+    lastName: text("last_name").notNull().default(""),
+    bio: text("bio"),
+    expertise: text("expertise"),
+    company: text("company"),
+    linkedinUrl: text("linkedin_url"),
+    avatarUrl: text("avatar_url"),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("mentor_profiles_user_event_idx").on(table.userId, table.eventId),
+    index("mentor_profiles_event_idx").on(table.eventId),
+  ],
+);
+
+// ── Mentor slots ─────────────────────────────────────────────────────────────
+
+export const mentorSlots = pgTable(
+  "mentor_slots",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    mentorProfileId: uuid("mentor_profile_id")
+      .notNull()
+      .references(() => mentorProfiles.id, { onDelete: "cascade" }),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    startsAt: timestamp("starts_at", { mode: "date" }).notNull(),
+    endsAt: timestamp("ends_at", { mode: "date" }).notNull(),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("mentor_slots_mentor_idx").on(table.mentorProfileId),
+    index("mentor_slots_event_idx").on(table.eventId),
+    index("mentor_slots_starts_idx").on(table.startsAt),
+  ],
+);
+
+// ── Mentor bookings ──────────────────────────────────────────────────────────
+
+export const mentorBookings = pgTable(
+  "mentor_bookings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slotId: uuid("slot_id")
+      .notNull()
+      .unique()
+      .references(() => mentorSlots.id, { onDelete: "cascade" }),
+    teamId: uuid("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    bookedBy: text("booked_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    cancelledAt: timestamp("cancelled_at", { mode: "date" }),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("mentor_bookings_slot_idx").on(table.slotId),
+    index("mentor_bookings_team_idx").on(table.teamId),
+  ],
+);
+
 // ── Audit log (immutable — insert only) ─────────────────────────────────────
 
 export const auditLog = pgTable(
@@ -472,3 +566,8 @@ export type TeamChallengeApplication = typeof teamChallengeApplications.$inferSe
 export type TeamJoinRequest = typeof teamJoinRequests.$inferSelect;
 export type EventRegistration = typeof eventRegistrations.$inferSelect;
 export type EventTicket = typeof eventTickets.$inferSelect;
+export type MentorInvite = typeof mentorInvites.$inferSelect;
+export type MentorProfile = typeof mentorProfiles.$inferSelect;
+export type NewMentorProfile = typeof mentorProfiles.$inferInsert;
+export type MentorSlot = typeof mentorSlots.$inferSelect;
+export type MentorBooking = typeof mentorBookings.$inferSelect;
