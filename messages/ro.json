@@ -1,0 +1,47 @@
+{
+  "common": {
+    "appName": "Gigahack Platform",
+    "loading": "Se încarcă...",
+    "error": "A apărut o eroare",
+    "save": "Salvează",
+    "cancel": "Anulează",
+    "confirm": "Confirmă",
+    "back": "Înapoi",
+    "next": "Următor",
+    "submit": "Trimite",
+    "edit": "Editează",
+    "delete": "Șterge",
+    "view": "Vizualizează",
+    "close": "Închide"
+  },
+  "auth": {
+    "signIn": "Autentificare",
+    "signOut": "Deconectare",
+    "signInWithGoogle": "Continuă cu Google",
+    "orContinueWithEmail": "sau continuă cu email",
+    "emailLabel": "Adresă de email",
+    "emailPlaceholder": "tu@exemplu.md",
+    "sendMagicLink": "Trimite link de autentificare",
+    "magicLinkSent": "Link-ul de autentificare a fost trimis! Verifică-ți emailul.",
+    "magicLinkDescription": "Vei primi un email cu un link de autentificare valabil 24 de ore.",
+    "invalidEmail": "Adresă de email invalidă",
+    "signInError": "A apărut o eroare la autentificare. Încearcă din nou.",
+    "signInTitle": "Bun venit la Gigahack",
+    "signInSubtitle": "Autentifică-te pentru a continua"
+  },
+  "nav": {
+    "dashboard": "Panou principal",
+    "challenges": "Provocări",
+    "mentors": "Mentori",
+    "map": "Hartă",
+    "notifications": "Notificări",
+    "profile": "Profil",
+    "admin": "Administrare"
+  },
+  "landing": {
+    "heroTitle": "Deeptech Gigahack",
+    "heroSubtitle": "Cel mai mare hackathon de deeptech din Moldova",
+    "ctaRegister": "Înregistrează-te",
+    "ctaLearnMore": "Află mai multe"
+  }
+}

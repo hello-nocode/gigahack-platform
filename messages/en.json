@@ -1,0 +1,47 @@
+{
+  "common": {
+    "appName": "Gigahack Platform",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "edit": "Edit",
+    "delete": "Delete",
+    "view": "View",
+    "close": "Close"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "signInWithGoogle": "Continue with Google",
+    "orContinueWithEmail": "or continue with email",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "you@example.com",
+    "sendMagicLink": "Send magic link",
+    "magicLinkSent": "Magic link sent! Check your email.",
+    "magicLinkDescription": "You will receive an email with a sign-in link valid for 24 hours.",
+    "invalidEmail": "Invalid email address",
+    "signInError": "An error occurred during sign in. Please try again.",
+    "signInTitle": "Welcome to Gigahack",
+    "signInSubtitle": "Sign in to continue"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "challenges": "Challenges",
+    "mentors": "Mentors",
+    "map": "Map",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "admin": "Admin"
+  },
+  "landing": {
+    "heroTitle": "Deeptech Gigahack",
+    "heroSubtitle": "Moldova's largest deeptech hackathon",
+    "ctaRegister": "Register",
+    "ctaLearnMore": "Learn more"
+  }
+}

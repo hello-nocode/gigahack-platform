@@ -1,0 +1,1 @@
+ALTER TABLE "teams" ADD COLUMN "accepting_new_members" boolean DEFAULT true NOT NULL;
