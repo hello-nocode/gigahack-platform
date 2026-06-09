@@ -25,19 +25,14 @@ export default async function MentorEditPage({
   const action = upsertMentorProfile.bind(null, mentorId);
 
   return (
-    <main className="min-h-screen bg-slate-900 p-8 text-white">
-      <div className="mx-auto max-w-2xl">
+    <main className="gh-page">
+      <div style={{ margin: "0 auto", maxWidth: "40rem" }}>
         <div className="mb-8">
-          <h1 className="text-2xl font-bold">Edit Mentor Profile</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Fill in your details so teams can find and book sessions with you.
-          </p>
+          <p className="gh-kicker mb-1">» Edit Profile</p>
+          <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "24px", letterSpacing: "-0.02em" }}>Edit Mentor Profile</h1>
+          <p style={{ marginTop: "4px", fontSize: "13px", color: "var(--fg-3)" }}>Fill in your details so teams can find and book sessions with you.</p>
         </div>
-        <MentorProfileForm
-          action={action}
-          defaultValues={mentor}
-          redirectTo={`/events/${slug}/mentors/${mentorId}/schedule`}
-        />
+        <MentorProfileForm action={action} defaultValues={mentor} redirectTo={`/events/${slug}/mentors/${mentorId}/schedule`} />
       </div>
     </main>
   );

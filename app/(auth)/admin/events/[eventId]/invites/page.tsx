@@ -21,64 +21,39 @@ export default async function InvitesPage({
   const baseUrl = process.env["NEXT_PUBLIC_APP_URL"] ?? "http://localhost:3000";
 
   return (
-    <main className="min-h-screen bg-slate-900 p-8 text-white">
-      <div className="mx-auto max-w-3xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">Partner Invites</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Generate single-use invite links for partners
-          </p>
-        </div>
+    <main className="gh-page">
+      <div style={{ margin: "0 auto", maxWidth: "48rem" }}>
+        <p className="gh-kicker mb-1">» Admin</p>
+        <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "28px", letterSpacing: "-0.02em", marginBottom: "4px" }}>Partner Invites</h1>
+        <p style={{ marginBottom: "24px", fontSize: "13px", color: "var(--fg-3)" }}>Generate single-use invite links for partners</p>
 
-        <form
-          action={async () => {
-            "use server";
-            await generateInvite(eventId);
-          }}
-          className="mb-8"
-        >
-          <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-            <Link2 className="mr-2 h-4 w-4" />
-            Generate New Invite Link
+        <form action={async () => { "use server"; await generateInvite(eventId); }} className="mb-8">
+          <Button type="submit">
+            <Link2 className="mr-2 h-4 w-4" />Generate New Invite Link
           </Button>
         </form>
 
-        <div className="space-y-3">
-          {invites.length === 0 && (
-            <p className="text-slate-500">No invites yet.</p>
-          )}
+        <div className="space-y-2">
+          {invites.length === 0 && <p style={{ fontSize: "13px", color: "var(--fg-faint)" }}>No invites yet.</p>}
           {invites.map((invite) => {
             const url = `${baseUrl}/invite/${invite.code}`;
             const used = !!invite.usedAt;
-            const expired =
-              invite.expiresAt ? invite.expiresAt < new Date() : false;
-
+            const expired = invite.expiresAt ? invite.expiresAt < new Date() : false;
             return (
-              <div
-                key={invite.id}
-                className={`flex items-center justify-between gap-4 rounded-xl border p-4 ${
-                  used
-                    ? "border-slate-700 bg-slate-800/30 opacity-60"
-                    : expired
-                      ? "border-yellow-800/50 bg-yellow-900/10"
-                      : "border-slate-600 bg-slate-800/50"
-                }`}
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-mono text-xs text-slate-300">{url}</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {used
-                      ? `Used ${invite.usedAt?.toLocaleDateString()}`
-                      : expired
-                        ? "Expired"
-                        : `Expires ${invite.expiresAt?.toLocaleDateString()}`}
+              <div key={invite.id} className="flex items-center justify-between gap-4 p-4" style={{
+                opacity: used ? 0.5 : 1,
+                border: expired ? "1px solid var(--warn)" : "1px solid var(--border)",
+                background: expired ? "rgba(232,229,83,0.04)" : "var(--surface-2)",
+              }}>
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--fg-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{url}</p>
+                  <p style={{ marginTop: "4px", fontSize: "11px", color: "var(--fg-faint)", fontFamily: "var(--font-mono)" }}>
+                    {used ? `Used ${invite.usedAt?.toLocaleDateString()}` : expired ? "Expired" : `Expires ${invite.expiresAt?.toLocaleDateString()}`}
                   </p>
                 </div>
                 {!used && !expired && <CopyButton text={url} />}
                 {(used || expired) && (
-                  <span className="shrink-0 rounded-full bg-slate-700 px-2 py-0.5 text-xs text-slate-400">
-                    {used ? "Used" : "Expired"}
-                  </span>
+                  <span style={{ flexShrink: 0, padding: "1px 8px", fontSize: "11px", fontFamily: "var(--font-mono)", color: "var(--fg-faint)", background: "var(--surface-3)", border: "1px solid var(--border)" }}>{used ? "Used" : "Expired"}</span>
                 )}
               </div>
             );

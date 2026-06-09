@@ -1,43 +1,390 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
 
+@font-face {
+  font-family: 'Aspekta';
+  src: url('/fonts/AspektaVF.woff2') format('woff2-variations'),
+       url('/fonts/AspektaVF.ttf')  format('truetype-variations');
+  font-weight: 50 1000;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── GigaHack Design Tokens ── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --primary: 221.2 83.2% 53.3%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 221.2 83.2% 53.3%;
+  /* Color ramp */
+  --ink-900: #0C0C0C;
+  --ink-850: #141414;
+  --ink-800: #1A1A1A;
+  --ink-750: #202020;
+  --ink-700: #272727;
+  --ink-650: #303030;
+  --line:    #262626;
+  --line-2:  #383838;
+
+  /* Foreground */
+  --fg-1: #FFFFFF;
+  --fg-2: #B4B4B4;
+  --fg-3: #7A7A7A;
+  --fg-faint: #555555;
+
+  /* Green accent */
+  --green:        #00E905;
+  --green-bright: #34FF38;
+  --green-dim:    #0BC40E;
+  --green-ink:    #0C0C0C;
+  --green-glow:   rgba(0, 233, 5, 0.45);
+  --green-veil:   rgba(0, 233, 5, 0.10);
+
+  /* Status */
+  --ok:     #00E905;
+  --warn:   #E8E553;
+  --danger: #FF4D4D;
+  --info:   #3DA5FF;
+
+  /* Radii — square-first */
+  --r-xs: 0; --r-sm: 0; --r-md: 0; --r-lg: 0; --r-xl: 0; --r-pill: 0;
+
+  /* Spacing */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 64px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.5);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.55);
+  --shadow-lg: 0 24px 64px rgba(0,0,0,0.6);
+  --glow:      0 0 0 1px var(--green), 0 0 18px var(--green-glow);
+
+  /* Fonts */
+  --font-display: 'Aspekta', 'Segoe UI', system-ui, sans-serif;
+  --font-ui:      'Aspekta', 'Segoe UI', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Semantic aliases */
+  --bg:            var(--ink-850);
+  --surface:       var(--ink-800);
+  --surface-2:     var(--ink-750);
+  --surface-3:     var(--ink-700);
+  --border:        var(--line);
+  --border-strong: var(--line-2);
+  --accent:        var(--green);
+  --accent-fg:     var(--green-ink);
+  --text:          var(--fg-1);
+  --text-muted:    var(--fg-2);
+  --text-faint:    var(--fg-3);
+
+  /* shadcn compat aliases */
+  --background:             var(--ink-850);
+  --foreground:             var(--fg-1);
+  --card:                   var(--ink-750);
+  --card-foreground:        var(--fg-1);
+  --popover:                var(--ink-800);
+  --popover-foreground:     var(--fg-1);
+  --primary:                var(--green);
+  --primary-foreground:     var(--green-ink);
+  --secondary:              var(--ink-700);
+  --secondary-foreground:   var(--fg-1);
+  --muted:                  var(--ink-700);
+  --muted-foreground:       var(--fg-3);
+  --destructive:            var(--danger);
+  --destructive-foreground: var(--fg-1);
+  --input:                  var(--ink-700);
+  --ring:                   var(--green);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--bg);
+  --color-foreground: var(--fg-1);
+  --font-sans: var(--font-display);
+  --font-mono: var(--font-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* ── Base ── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { color-scheme: dark; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--fg-1);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
 }
 
-* {
-  box-sizing: border-box;
+/* ── GigaHack type helpers ── */
+.gh-kicker {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--green);
 }
+
+.gh-cursor::after {
+  content: '_';
+  color: var(--green);
+  animation: gh-blink 1.1s steps(1) infinite;
+}
+@keyframes gh-blink {
+  0%, 50%      { opacity: 1 }
+  50.01%, 100% { opacity: 0 }
+}
+
+/* ── Buttons ── */
+.gh-btn-primary {
+  background: var(--green);
+  color: var(--green-ink);
+  border-radius: 0;
+  font-weight: 500;
+}
+.gh-btn-primary:hover { background: var(--green-bright); box-shadow: var(--glow); }
+.gh-btn-primary:active { background: var(--green-dim); transform: scale(0.98); }
+
+.gh-btn-destructive {
+  background: var(--danger);
+  color: #fff;
+  border-radius: 0;
+}
+.gh-btn-destructive:hover { opacity: 0.9; }
+
+.gh-btn-outline {
+  background: transparent;
+  color: var(--fg-1);
+  border: 1px solid var(--line-2);
+  border-radius: 0;
+}
+.gh-btn-outline:hover { background: var(--ink-700); border-color: var(--fg-3); }
+
+.gh-btn-secondary {
+  background: var(--ink-700);
+  color: var(--fg-1);
+  border-radius: 0;
+}
+.gh-btn-secondary:hover { background: var(--ink-650); }
+
+.gh-btn-ghost {
+  background: transparent;
+  color: var(--fg-2);
+  border-radius: 0;
+}
+.gh-btn-ghost:hover { background: var(--ink-700); color: var(--fg-1); }
+
+/* ── Inputs ── */
+.gh-input {
+  background: var(--ink-700);
+  color: var(--fg-1);
+  border: 1px solid var(--line-2);
+  border-radius: 0;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.gh-input::placeholder { color: var(--fg-faint); }
+.gh-input:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-veil);
+}
+.gh-input:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Sidebar nav link ── */
+.gh-nav-link:hover {
+  background: var(--ink-700);
+  color: var(--fg-1) !important;
+}
+.gh-nav-link:hover span { color: var(--green) !important; }
+.gh-nav-link[data-active="true"],
+.gh-nav-link[aria-current="page"] {
+  background: var(--green-veil);
+  color: var(--fg-1) !important;
+  border-left: 2px solid var(--green);
+}
+.gh-nav-link[data-active="true"] span,
+.gh-nav-link[aria-current="page"] span { color: var(--green) !important; }
+
+/* ── Nav tab (dashboard) ── */
+.gh-nav-tab {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--fg-2);
+  font-weight: 400;
+}
+.gh-nav-tab:hover { background: var(--surface-3); color: var(--fg-1); }
+
+/* ── Sign out button ── */
+.gh-signout:hover { color: var(--danger) !important; }
+
+/* ── Stat card ── */
+.gh-stat-card:hover {
+  border-color: var(--line-2) !important;
+  background: var(--ink-650) !important;
+}
+
+/* ── Form elements ── */
+.gh-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  margin-bottom: 6px;
+}
+.gh-select {
+  height: 40px;
+  width: 100%;
+  background: var(--ink-700);
+  color: var(--fg-1);
+  border: 1px solid var(--line-2);
+  border-radius: 0;
+  padding: 0 12px;
+  font-size: 14px;
+  font-family: var(--font-ui);
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237A7A7A' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.gh-select:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-veil);
+}
+.gh-textarea {
+  width: 100%;
+  background: var(--ink-700);
+  color: var(--fg-1);
+  border: 1px solid var(--line-2);
+  border-radius: 0;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: var(--font-ui);
+  resize: vertical;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.gh-textarea::placeholder { color: var(--fg-faint); }
+.gh-textarea:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-veil);
+}
+.gh-checkbox {
+  accent-color: var(--green);
+  width: 16px;
+  height: 16px;
+}
+.gh-toggle {
+  position: relative;
+  display: inline-flex;
+  height: 24px;
+  width: 44px;
+  align-items: center;
+  border-radius: 0;
+  transition: background 0.15s;
+  cursor: pointer;
+}
+.gh-toggle[data-on="true"] { background: var(--green); }
+.gh-toggle[data-on="false"] { background: var(--ink-650); }
+.gh-toggle:disabled { opacity: 0.4; cursor: not-allowed; }
+.gh-toggle-thumb {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background: var(--fg-1);
+  transition: transform 0.15s;
+}
+.gh-toggle[data-on="true"] .gh-toggle-thumb { transform: translateX(24px); }
+.gh-toggle[data-on="false"] .gh-toggle-thumb { transform: translateX(4px); }
+
+/* ── Error / success banners ── */
+.gh-banner-error {
+  padding: 12px 16px;
+  background: rgba(255,77,77,0.08);
+  border: 1px solid var(--danger);
+  font-size: 13px;
+  color: var(--danger);
+}
+.gh-banner-success {
+  padding: 12px 16px;
+  background: var(--green-veil);
+  border: 1px solid var(--green);
+  font-size: 13px;
+  color: var(--green);
+}
+.gh-banner-info {
+  padding: 12px 16px;
+  background: rgba(61,165,255,0.08);
+  border: 1px solid var(--info);
+  font-size: 13px;
+  color: var(--fg-2);
+}
+.gh-banner-warn {
+  padding: 12px 16px;
+  background: rgba(232,229,83,0.08);
+  border: 1px solid var(--warn);
+  font-size: 13px;
+  color: var(--warn);
+}
+
+/* ── Cards ── */
+.gh-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.gh-card-active {
+  background: var(--surface-2);
+  border: 1px solid var(--green);
+  box-shadow: var(--glow);
+}
+.gh-card-hover {
+  transition: border-color 0.15s, background 0.15s;
+}
+.gh-card-hover:hover {
+  border-color: var(--line-2) !important;
+  background: var(--ink-750) !important;
+}
+
+/* ── Section divider ── */
+.gh-divider {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 24px 0;
+}
+
+/* ── Table ── */
+.gh-table { width: 100%; border-collapse: collapse; }
+.gh-table th {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+.gh-table td {
+  padding: 12px;
+  font-size: 14px;
+  color: var(--fg-2);
+  border-bottom: 1px solid var(--line);
+}
+.gh-table tr:last-child td { border-bottom: none; }
+.gh-table tr:hover td { background: var(--ink-750); color: var(--fg-1); }
+
+/* ── Page shell ── */
+.gh-page { min-height: 100vh; padding: 32px; color: var(--fg-1); }
+.gh-page-inner { margin: 0 auto; max-width: 56rem; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--ink-850); }
+::-webkit-scrollbar-thumb { background: var(--ink-650); }
+::-webkit-scrollbar-thumb:hover { background: var(--line-2); }

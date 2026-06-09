@@ -3,6 +3,9 @@ import { notFound, redirect } from "next/navigation";
 import type { Route } from "next";
 import { auth } from "@/lib/auth/config";
 import { isAdmin } from "@/lib/permissions";
+import { db } from "@db/index";
+import { partnerProfiles, mentorProfiles as mentorProfilesTable } from "@db/schema";
+import { and, eq } from "drizzle-orm";
 import { getEventBySlug } from "@/lib/actions/events";
 import {
   getMentorProfile,
@@ -30,70 +33,64 @@ export default async function MentorDetailPage({
   if (!mentor || mentor.eventId !== event.id) notFound();
 
   const isOwnProfile = mentor.userId === session.user.id;
-  const userTeam = await getUserTeamInEvent(event.id);
+
+  // Check if current user is a partner or mentor for this event
+  const [isPartner, isMentor] = await Promise.all([
+    db.select({ id: partnerProfiles.id })
+      .from(partnerProfiles)
+      .where(and(eq(partnerProfiles.userId, session.user.id), eq(partnerProfiles.eventId, event.id)))
+      .then(r => r.length > 0),
+    db.select({ id: mentorProfilesTable.id })
+      .from(mentorProfilesTable)
+      .where(and(eq(mentorProfilesTable.userId, session.user.id), eq(mentorProfilesTable.eventId, event.id)))
+      .then(r => r.length > 0),
+  ]);
+
+  // Only plain participants (approved + team leader) may book
+  const canBook = !admin && !isPartner && !isMentor;
+  const userTeam = canBook ? await getUserTeamInEvent(event.id) : null;
 
   const slots = await getSlotsByMentor(mentorId);
 
   return (
-    <main className="min-h-screen bg-slate-900 p-8 text-white">
-      <div className="mx-auto max-w-3xl">
+    <main className="gh-page">
+      <div style={{ margin: "0 auto", maxWidth: "48rem" }}>
         <div className="mb-6 flex items-center justify-between">
-          <Button asChild variant="ghost" className="text-slate-400 hover:text-white">
-            <Link href={`/events/${slug}/mentors`}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              All Mentors
-            </Link>
+          <Button asChild variant="ghost">
+            <Link href={`/events/${slug}/mentors`}><ArrowLeft className="mr-2 h-4 w-4" />All Mentors</Link>
           </Button>
           <div className="flex items-center gap-2">
             {(isOwnProfile || admin) && (
               <>
-                <Button asChild size="sm" variant="outline" className="border-slate-500 bg-slate-800 text-white hover:bg-slate-700">
-                  <Link href={`/events/${slug}/mentors/${mentorId}/edit` as Route}>
-                    <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                    Edit Profile
-                  </Link>
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/events/${slug}/mentors/${mentorId}/edit` as Route}><Pencil className="mr-1.5 h-3.5 w-3.5" />Edit Profile</Link>
                 </Button>
-                <Button asChild size="sm" className="bg-blue-600 hover:bg-blue-700">
-                  <Link href={`/events/${slug}/mentors/${mentorId}/schedule` as Route}>
-                    <Calendar className="mr-1.5 h-3.5 w-3.5" />
-                    Manage Schedule
-                  </Link>
+                <Button asChild size="sm">
+                  <Link href={`/events/${slug}/mentors/${mentorId}/schedule` as Route}><Calendar className="mr-1.5 h-3.5 w-3.5" />Manage Schedule</Link>
                 </Button>
               </>
             )}
           </div>
         </div>
 
-        {/* Profile card */}
-        <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
+        <div className="mb-6 gh-card p-6">
           <div className="flex items-start gap-5">
             {mentor.avatarUrl ? (
-              <img
-                src={mentor.avatarUrl}
-                alt={`${mentor.firstName} ${mentor.lastName}`}
-                className="h-20 w-20 rounded-full object-cover ring-2 ring-slate-600 shrink-0"
-              />
+              <img src={mentor.avatarUrl} alt={`${mentor.firstName} ${mentor.lastName}`}
+                style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--border)", flexShrink: 0 }} />
             ) : (
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-slate-700 text-3xl font-bold text-slate-400">
+              <div style={{ width: 72, height: 72, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--ink-650)", fontFamily: "var(--font-display)", fontSize: "26px", fontWeight: 700, color: "var(--fg-3)" }}>
                 {mentor.firstName?.[0] ?? "M"}
               </div>
             )}
-            <div className="min-w-0">
-              <h1 className="text-2xl font-bold">
-                {mentor.firstName} {mentor.lastName}
-              </h1>
-              {mentor.company && (
-                <p className="mt-1 text-slate-400">{mentor.company}</p>
-              )}
+            <div style={{ minWidth: 0 }}>
+              <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "22px", letterSpacing: "-0.02em" }}>{mentor.firstName} {mentor.lastName}</h1>
+              {mentor.company && <p style={{ marginTop: "4px", fontSize: "14px", color: "var(--fg-3)" }}>{mentor.company}</p>}
               {mentor.linkedinUrl && (
-                <a
-                  href={mentor.linkedinUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-1 inline-flex items-center gap-1 text-sm text-blue-400 hover:underline"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  LinkedIn
+                <a href={mentor.linkedinUrl} target="_blank" rel="noopener noreferrer"
+                  style={{ marginTop: "6px", display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "var(--green)", fontFamily: "var(--font-mono)" }}
+                  className="hover:underline">
+                  <ExternalLink style={{ width: 11, height: 11 }} />LinkedIn
                 </a>
               )}
             </div>
@@ -101,17 +98,10 @@ export default async function MentorDetailPage({
 
           {mentor.expertise && (
             <div className="mt-5">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Expertise
-              </p>
+              <p className="gh-kicker mb-2">» Expertise</p>
               <div className="flex flex-wrap gap-2">
                 {mentor.expertise.split(",").map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-full border border-blue-700/40 bg-blue-900/20 px-2.5 py-0.5 text-xs text-blue-300"
-                  >
-                    {tag.trim()}
-                  </span>
+                  <span key={tag} style={{ padding: "2px 8px", fontSize: "11px", fontFamily: "var(--font-mono)", border: "1px solid var(--border)", color: "var(--fg-2)", background: "var(--surface-3)" }}>{tag.trim()}</span>
                 ))}
               </div>
             </div>
@@ -119,21 +109,14 @@ export default async function MentorDetailPage({
 
           {mentor.bio && (
             <div className="mt-5">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                About
-              </p>
-              <p className="text-sm leading-relaxed text-slate-300">{mentor.bio}</p>
+              <p className="gh-kicker mb-2">» About</p>
+              <p style={{ fontSize: "14px", color: "var(--fg-2)", lineHeight: 1.6 }}>{mentor.bio}</p>
             </div>
           )}
         </div>
 
-        {/* Slots */}
-        <h2 className="mb-4 text-lg font-semibold">Available Sessions</h2>
-        <SlotGrid
-          slots={slots}
-          teamId={userTeam?.id}
-          myTeamId={userTeam?.id}
-        />
+        <p className="gh-kicker mb-4">» Available Sessions</p>
+        <SlotGrid slots={slots} teamId={canBook ? userTeam?.id : undefined} myTeamId={userTeam?.id} />
       </div>
     </main>
   );

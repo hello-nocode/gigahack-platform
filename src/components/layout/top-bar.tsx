@@ -3,9 +3,10 @@ import type { Route } from "next";
 import { auth, signOut } from "@/lib/auth/config";
 import { isAdmin } from "@/lib/permissions";
 import { db } from "@db/index";
-import { users, partnerProfiles, mentorProfiles, events, teamMembers, teams, eventRegistrations } from "@db/schema";
-import { and, desc, eq, notInArray } from "drizzle-orm";
-import { UserCircle, LogOut, LayoutDashboard, CalendarDays, Shield, Building2, Users, Lightbulb, GraduationCap } from "lucide-react";
+import { users, partnerProfiles, mentorProfiles, events, teamMembers, teams, eventRegistrations, notifications } from "@db/schema";
+import { and, desc, eq, isNull, notInArray } from "drizzle-orm";
+import { UserCircle, LogOut, LayoutDashboard, CalendarDays, Shield, Building2, Users, Lightbulb, GraduationCap, Bell } from "lucide-react";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 export async function TopBar() {
   const session = await auth();
@@ -53,6 +54,11 @@ export async function TopBar() {
 
   const isPartner = partnerCount > 0;
   const isMentor = !!activeMentorProfile;
+
+  const [myNotifications, unreadCount] = await Promise.all([
+    db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt)).limit(50),
+    db.select({ id: notifications.id }).from(notifications).where(and(eq(notifications.userId, userId), isNull(notifications.readAt))).then(r => r.length),
+  ]);
   const displayName = dbUser?.firstName && dbUser?.lastName
     ? `${dbUser.firstName} ${dbUser.lastName}`
     : dbUser?.name ?? dbUser?.email ?? "";
@@ -76,6 +82,9 @@ export async function TopBar() {
               <>
                 <NavLink href="/events" icon={<CalendarDays className="h-3.5 w-3.5" />}>
                   Events
+                </NavLink>
+                <NavLink href="/admin/notifications" icon={<Bell className="h-3.5 w-3.5" />}>
+                  Broadcasts
                 </NavLink>
               </>
             ) : activeEvent ? (
@@ -133,6 +142,9 @@ export async function TopBar() {
               <Users className="h-3 w-3" /> Participant
             </span>
           )}
+
+          {/* Notification bell */}
+          <NotificationBell notifications={myNotifications} unreadCount={unreadCount} />
 
           {/* Profile link */}
           <Link

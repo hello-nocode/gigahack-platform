@@ -519,6 +519,109 @@ export const mentorBookings = pgTable(
   ],
 );
 
+// ── Notifications ───────────────────────────────────────────────────────────
+
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "mentor_booked",
+  "session_reminder",
+  "join_request_received",
+  "join_request_reviewed",
+  "admin_broadcast",
+]);
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    eventId: uuid("event_id").references(() => events.id, { onDelete: "cascade" }),
+    type: notificationTypeEnum("type").notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    link: text("link"),
+    readAt: timestamp("read_at", { mode: "date" }),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("notifications_user_idx").on(table.userId),
+    index("notifications_user_read_idx").on(table.userId, table.readAt),
+    index("notifications_created_idx").on(table.createdAt),
+  ],
+);
+
+export const notificationPreferences = pgTable(
+  "notification_preferences",
+  {
+    userId: text("user_id")
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    emailOnMentorBooked: boolean("email_on_mentor_booked").notNull().default(true),
+    emailOnSessionReminder: boolean("email_on_session_reminder").notNull().default(true),
+    emailOnJoinRequest: boolean("email_on_join_request").notNull().default(true),
+    emailOnJoinReviewed: boolean("email_on_join_reviewed").notNull().default(true),
+    emailOnAdminBroadcast: boolean("email_on_admin_broadcast").notNull().default(true),
+    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+  },
+);
+
+export const scheduledBroadcasts = pgTable(
+  "scheduled_broadcasts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id").references(() => events.id, { onDelete: "cascade" }),
+    creatorId: text("creator_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    link: text("link"),
+    filter: jsonb("filter").notNull().default({}),
+    sendAt: timestamp("send_at", { mode: "date" }).notNull(),
+    sentAt: timestamp("sent_at", { mode: "date" }),
+    recipientCount: integer("recipient_count"),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("scheduled_broadcasts_event_idx").on(table.eventId),
+    index("scheduled_broadcasts_send_at_idx").on(table.sendAt),
+  ],
+);
+
+// ── Event schedule ───────────────────────────────────────────────────────────
+
+export const scheduleItemTypeEnum = pgEnum("schedule_item_type", [
+  "keynote",
+  "workshop",
+  "meal",
+  "deadline",
+  "other",
+]);
+
+export const eventScheduleItems = pgTable(
+  "event_schedule_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    type: scheduleItemTypeEnum("type").notNull().default("other"),
+    startsAt: timestamp("starts_at", { mode: "date" }).notNull(),
+    endsAt: timestamp("ends_at", { mode: "date" }),
+    location: text("location"),
+    description: text("description"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("event_schedule_event_idx").on(table.eventId),
+    index("event_schedule_starts_idx").on(table.startsAt),
+  ],
+);
+
 // ── Audit log (immutable — insert only) ─────────────────────────────────────
 
 export const auditLog = pgTable(
@@ -571,3 +674,9 @@ export type MentorProfile = typeof mentorProfiles.$inferSelect;
 export type NewMentorProfile = typeof mentorProfiles.$inferInsert;
 export type MentorSlot = typeof mentorSlots.$inferSelect;
 export type MentorBooking = typeof mentorBookings.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
+export type NewNotification = typeof notifications.$inferInsert;
+export type NotificationPreferences = typeof notificationPreferences.$inferSelect;
+export type ScheduledBroadcast = typeof scheduledBroadcasts.$inferSelect;
+export type EventScheduleItem = typeof eventScheduleItems.$inferSelect;
+export type NewEventScheduleItem = typeof eventScheduleItems.$inferInsert;

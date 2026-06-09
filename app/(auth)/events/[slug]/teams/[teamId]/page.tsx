@@ -37,83 +37,63 @@ export default async function TeamDetailPage({
   const pendingRequests = joinRequests.filter((r) => r.status === "pending");
 
   return (
-    <main className="min-h-screen bg-slate-900 p-8 text-white">
-      <div className="mx-auto max-w-3xl">
+    <main className="gh-page">
+      <div style={{ margin: "0 auto", maxWidth: "48rem" }}>
         <div className="mb-6 flex items-center justify-between">
-          <Button asChild variant="ghost" className="text-slate-400 hover:text-white">
-            <Link href={`/events/${slug}/teams`}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              All Teams
-            </Link>
+          <Button asChild variant="ghost">
+            <Link href={`/events/${slug}/teams`}><ArrowLeft className="mr-2 h-4 w-4" />All Teams</Link>
           </Button>
           {isLeader && !isCompleted && (
-            <Button asChild variant="outlineDark" size="sm">
-              <Link href={`/events/${slug}/teams/${teamId}/edit`}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Edit
-              </Link>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/events/${slug}/teams/${teamId}/edit`}><Pencil className="mr-2 h-4 w-4" />Edit</Link>
             </Button>
           )}
         </div>
 
-        {/* Read-only banner */}
         {isCompleted && (
-          <div className="mb-4 flex items-center gap-2 rounded-xl border border-slate-600 bg-slate-800/50 px-4 py-3 text-sm text-slate-400">
-            <Lock className="h-4 w-4 shrink-0" />
+          <div className="mb-4 flex items-center gap-2 px-4 py-3" style={{ border: "1px solid var(--border)", background: "var(--surface-2)", fontSize: "13px", color: "var(--fg-3)" }}>
+            <Lock style={{ width: 14, height: 14, flexShrink: 0 }} />
             This event is completed. All data is read-only.
           </div>
         )}
 
-        {/* Header */}
-        <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
+        <div className="mb-4 gh-card p-6">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-3xl font-bold">{team.name}</h1>
-              {team.description && <p className="mt-2 text-slate-400">{team.description}</p>}
-              <span className={`mt-3 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                team.status === "registered" ? "bg-green-900/50 text-green-300" :
-                team.status === "disqualified" ? "bg-red-900/50 text-red-300" :
-                "bg-slate-700 text-slate-400"
-              }`}>{team.status}</span>
+              <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "26px", letterSpacing: "-0.02em" }}>{team.name}</h1>
+              {team.description && <p style={{ marginTop: "8px", fontSize: "14px", color: "var(--fg-3)" }}>{team.description}</p>}
+              <span style={{ marginTop: "10px", display: "inline-block", padding: "2px 8px", fontSize: "11px", fontFamily: "var(--font-mono)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em", background: team.status === "registered" ? "var(--green-veil)" : team.status === "disqualified" ? "rgba(255,71,87,0.1)" : "var(--surface-3)", color: team.status === "registered" ? "var(--green)" : team.status === "disqualified" ? "var(--danger)" : "var(--fg-faint)" }}>{team.status}</span>
             </div>
           </div>
-
         </div>
 
-        {/* Members */}
-        <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
-          <h2 className="mb-4 text-lg font-semibold">Members ({team.members.length}/{event.maxTeamSize})</h2>
+        <div className="mb-4 gh-card p-6">
+          <p className="gh-kicker mb-4">» Members ({team.members.length}/{event.maxTeamSize})</p>
           <div className="space-y-2">
             {team.members.map((m) => {
               const avatar = m.avatarUrl ?? m.image;
               return (
-                <div key={m.id} className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800 px-4 py-3">
+                <div key={m.id} className="flex items-center justify-between px-4 py-3" style={{ background: "var(--surface-3)", border: "1px solid var(--border)" }}>
                   <div className="flex items-center gap-3">
                     {avatar ? (
-                      <img src={avatar} alt="" className="h-8 w-8 rounded-full object-cover" />
+                      <img src={avatar} alt="" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover" }} />
                     ) : (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 text-xs font-semibold text-slate-300">
+                      <div style={{ width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--ink-650)", fontSize: "12px", fontWeight: 600 }}>
                         {(m.name ?? m.email ?? "?")[0]?.toUpperCase()}
                       </div>
                     )}
                     <div>
-                      <p className="text-sm font-medium">{m.name ?? m.email}</p>
-                      <p className="text-xs text-slate-500">{m.email}</p>
-                      {isLeader && m.phone && (
-                        <p className="text-xs text-slate-400">{m.phone}</p>
-                      )}
+                      <p style={{ fontSize: "14px", fontWeight: 500 }}>{m.name ?? m.email}</p>
+                      <p style={{ fontSize: "12px", color: "var(--fg-3)", fontFamily: "var(--font-mono)" }}>{m.email}</p>
+                      {isLeader && m.phone && <p style={{ fontSize: "12px", color: "var(--fg-3)" }}>{m.phone}</p>}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {m.role === "leader" && (
-                      <span className="rounded-full bg-blue-900/50 px-2 py-0.5 text-xs text-blue-300">Leader</span>
+                      <span style={{ padding: "1px 6px", fontSize: "10px", fontFamily: "var(--font-mono)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--green)", background: "var(--green-veil)", border: "1px solid var(--green)" }}>Leader</span>
                     )}
                     {isLeader && !isCompleted && m.userId !== session.user?.id && (
-                      <RemoveMemberButton
-                        teamId={teamId}
-                        memberId={m.userId}
-                        memberName={m.name ?? m.email ?? "this member"}
-                      />
+                      <RemoveMemberButton teamId={teamId} memberId={m.userId} memberName={m.name ?? m.email ?? "this member"} />
                     )}
                   </div>
                 </div>
@@ -122,66 +102,44 @@ export default async function TeamDetailPage({
           </div>
         </div>
 
-        {/* Challenge Applications */}
-        <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
-          <h2 className="mb-4 text-lg font-semibold">Challenge Applications</h2>
-
-          {applications.length > 0 && (
-            <div className="mb-4 space-y-2">
+        <div className="gh-card p-6">
+          <p className="gh-kicker mb-4">» Challenge Applications</p>
+          {applications.length > 0 ? (
+            <div className="space-y-2">
               {applications.map((a) => (
-                <div key={a.id} className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800 px-4 py-3">
+                <div key={a.id} className="flex items-center justify-between px-4 py-3" style={{ background: "var(--surface-3)", border: "1px solid var(--border)" }}>
                   <div>
-                    <Link href={`/events/${slug}/challenges/${a.challengeSlug}`} className="text-sm font-medium hover:underline">
-                      {a.challengeTitle}
-                    </Link>
-                    {a.note && <p className="text-xs text-slate-500">{a.note}</p>}
+                    <Link href={`/events/${slug}/challenges/${a.challengeSlug}`} style={{ fontSize: "14px", fontWeight: 500 }} className="hover:underline">{a.challengeTitle}</Link>
+                    {a.note && <p style={{ fontSize: "12px", color: "var(--fg-3)", marginTop: "2px" }}>{a.note}</p>}
                   </div>
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                    a.status === "accepted" ? "bg-green-900/50 text-green-300" :
-                    a.status === "rejected" ? "bg-red-900/50 text-red-300" :
-                    a.status === "withdrawn" ? "bg-slate-700 text-slate-400" :
-                    "bg-yellow-900/50 text-yellow-300"
-                  }`}>{a.status}</span>
+                  <span style={{ padding: "2px 8px", fontSize: "11px", fontFamily: "var(--font-mono)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em", background: a.status === "accepted" ? "var(--green-veil)" : a.status === "rejected" ? "rgba(255,71,87,0.1)" : a.status === "withdrawn" ? "var(--surface-3)" : "rgba(232,229,83,0.1)", color: a.status === "accepted" ? "var(--green)" : a.status === "rejected" ? "var(--danger)" : a.status === "withdrawn" ? "var(--fg-faint)" : "var(--warn)" }}>{a.status}</span>
                 </div>
               ))}
             </div>
-          )}
-
-          {applications.length === 0 && (
-            <p className="text-sm text-slate-500">No challenge applications yet.</p>
+          ) : (
+            <p style={{ fontSize: "13px", color: "var(--fg-faint)" }}>No challenge applications yet.</p>
           )}
         </div>
 
-        {/* Join requests — leader only */}
         {(isLeader || admin) && !isCompleted && pendingRequests.length > 0 && (
-          <div className="mt-6 rounded-2xl border border-yellow-700/40 bg-yellow-900/10 p-6">
-            <h2 className="mb-4 text-lg font-semibold text-yellow-200">Join Requests ({pendingRequests.length})</h2>
+          <div className="mt-4 p-6" style={{ background: "rgba(232,229,83,0.06)", border: "1px solid var(--warn)" }}>
+            <p className="gh-kicker mb-4" style={{ color: "var(--warn)" }}>» Join Requests ({pendingRequests.length})</p>
             <div className="space-y-2">
               {pendingRequests.map((req) => (
-                <div key={req.id} className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800 px-4 py-3">
+                <div key={req.id} className="flex items-center justify-between px-4 py-3" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
                   <div className="flex items-center gap-3">
-                    {req.image && <img src={req.image} alt="" className="h-8 w-8 rounded-full" />}
+                    {req.image && <img src={req.image} alt="" style={{ width: 32, height: 32, borderRadius: "50%" }} />}
                     <div>
-                      <p className="text-sm font-medium">{req.name ?? req.email}</p>
-                      {req.message && <p className="text-xs text-slate-400 mt-0.5">{req.message}</p>}
+                      <p style={{ fontSize: "14px", fontWeight: 500 }}>{req.name ?? req.email}</p>
+                      {req.message && <p style={{ fontSize: "12px", color: "var(--fg-3)", marginTop: "2px" }}>{req.message}</p>}
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <form action={async () => {
-                      "use server";
-                      await reviewJoinRequest(req.id, "accepted");
-                    }}>
-                      <Button type="submit" size="sm" className="bg-green-700 hover:bg-green-600 h-8 px-3 text-xs">
-                        <Check className="mr-1 h-3.5 w-3.5" /> Accept
-                      </Button>
+                    <form action={async () => { "use server"; await reviewJoinRequest(req.id, "accepted"); }}>
+                      <Button type="submit" size="sm"><Check className="mr-1 h-3.5 w-3.5" />Accept</Button>
                     </form>
-                    <form action={async () => {
-                      "use server";
-                      await reviewJoinRequest(req.id, "rejected");
-                    }}>
-                      <Button type="submit" size="sm" variant="outline" className="border-red-700 text-red-400 hover:bg-red-900/20 h-8 px-3 text-xs">
-                        <X className="mr-1 h-3.5 w-3.5" /> Reject
-                      </Button>
+                    <form action={async () => { "use server"; await reviewJoinRequest(req.id, "rejected"); }}>
+                      <Button type="submit" size="sm" variant="destructive"><X className="mr-1 h-3.5 w-3.5" />Reject</Button>
                     </form>
                   </div>
                 </div>
@@ -189,7 +147,6 @@ export default async function TeamDetailPage({
             </div>
           </div>
         )}
-
       </div>
     </main>
   );

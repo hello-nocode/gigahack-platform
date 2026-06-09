@@ -11,6 +11,8 @@ import {
   teams,
   teamMembers,
   users,
+  partnerProfiles,
+  eventRegistrations,
 } from "@db/schema";
 import { auth } from "@/lib/auth/config";
 import { isAdmin } from "@/lib/permissions";
@@ -18,6 +20,8 @@ import { eq, and, gte, lt, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { randomBytes } from "crypto";
+import { createNotification, sendNotificationEmail, getOrCreatePreferences } from "@/lib/actions/notifications";
+import { inngest } from "@/lib/inngest/client";
 import { z } from "zod";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -193,29 +197,25 @@ export async function getMentorsForEvent(eventId: string) {
 
   const withCounts = await Promise.all(
     profiles.map(async (p) => {
-      const slotCount = await db
+      const allSlots = await db
         .select({ id: mentorSlots.id })
         .from(mentorSlots)
+        .where(eq(mentorSlots.mentorProfileId, p.id));
+
+      const bookedSlotIds = await db
+        .select({ slotId: mentorBookings.slotId })
+        .from(mentorBookings)
+        .innerJoin(mentorSlots, eq(mentorBookings.slotId, mentorSlots.id))
         .where(
           and(
             eq(mentorSlots.mentorProfileId, p.id),
-            isNull(
-              db
-                .select({ id: mentorBookings.id })
-                .from(mentorBookings)
-                .where(
-                  and(
-                    eq(mentorBookings.slotId, mentorSlots.id),
-                    isNull(mentorBookings.cancelledAt),
-                  ),
-                )
-                .limit(1)
-                .as("b").id,
-            ),
+            isNull(mentorBookings.cancelledAt),
           ),
         )
-        .then((r) => r.length);
-      return { ...p, availableSlots: slotCount };
+        .then((r) => new Set(r.map((b) => b.slotId)));
+
+      const availableSlots = allSlots.filter((s) => !bookedSlotIds.has(s.id)).length;
+      return { ...p, availableSlots };
     }),
   );
   return withCounts;
@@ -370,6 +370,43 @@ export async function bookSlot(
 ): Promise<BookSlotState> {
   const userId = await requireSession();
 
+  // Fetch the slot first to get eventId
+  const [slot] = await db
+    .select()
+    .from(mentorSlots)
+    .where(eq(mentorSlots.id, slotId));
+  if (!slot) return { error: "Slot not found" };
+
+  // Block non-participants: admins, partners, mentors
+  const [adminCheck, partnerCheck, mentorCheck] = await Promise.all([
+    isAdmin(userId),
+    db.select({ id: partnerProfiles.id })
+      .from(partnerProfiles)
+      .where(and(eq(partnerProfiles.userId, userId), eq(partnerProfiles.eventId, slot.eventId)))
+      .then(r => r.length > 0),
+    db.select({ id: mentorProfiles.id })
+      .from(mentorProfiles)
+      .where(and(eq(mentorProfiles.userId, userId), eq(mentorProfiles.eventId, slot.eventId)))
+      .then(r => r.length > 0),
+  ]);
+
+  if (adminCheck) return { error: "Admins cannot book mentor sessions" };
+  if (partnerCheck) return { error: "Partners cannot book mentor sessions" };
+  if (mentorCheck) return { error: "Mentors cannot book their own or others\' sessions" };
+
+  // Require approved registration for this event
+  const [registration] = await db
+    .select({ id: eventRegistrations.id })
+    .from(eventRegistrations)
+    .where(
+      and(
+        eq(eventRegistrations.userId, userId),
+        eq(eventRegistrations.eventId, slot.eventId),
+        eq(eventRegistrations.status, "approved"),
+      ),
+    );
+  if (!registration) return { error: "Only approved participants can book mentor sessions" };
+
   // Check user is team leader
   const [membership] = await db
     .select()
@@ -382,11 +419,6 @@ export async function bookSlot(
   const [team] = await db.select().from(teams).where(eq(teams.id, teamId));
   if (team?.leaderId !== userId) return { error: "Only the team leader can book sessions" };
 
-  const [slot] = await db
-    .select()
-    .from(mentorSlots)
-    .where(eq(mentorSlots.id, slotId));
-  if (!slot) return { error: "Slot not found" };
   if (slot.startsAt < new Date()) return { error: "This slot is in the past" };
 
   // Check slot not already booked
@@ -419,11 +451,62 @@ export async function bookSlot(
   if (sameDayBookings.length > 0)
     return { error: "Your team already has a session with this mentor on this day" };
 
-  await db.insert(mentorBookings).values({
+  const [booking] = await db.insert(mentorBookings).values({
     slotId,
     teamId,
     bookedBy: userId,
-  });
+  }).returning();
+
+  // Fetch mentor profile to get mentor userId and event slug
+  const [mentorProfile] = await db
+    .select({ userId: mentorProfiles.userId, eventId: mentorProfiles.eventId })
+    .from(mentorProfiles)
+    .where(eq(mentorProfiles.id, slot.mentorProfileId));
+
+  const [teamRow] = await db.select({ name: teams.name }).from(teams).where(eq(teams.id, teamId));
+
+  if (mentorProfile) {
+    const slotTime = new Date(slot.startsAt).toLocaleString("en-GB", {
+      weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+    });
+    const title = "New mentoring session booked";
+    const body = `${teamRow?.name ?? "A team"} booked a session with you on ${slotTime}.`;
+    const link = `/events/[slug]/mentors/${slot.mentorProfileId}/schedule`;
+
+    await createNotification({
+      userId: mentorProfile.userId,
+      eventId: mentorProfile.eventId,
+      type: "mentor_booked",
+      title,
+      body,
+    });
+
+    const prefs = await getOrCreatePreferences(mentorProfile.userId);
+    if (prefs?.emailOnMentorBooked) {
+      void sendNotificationEmail(mentorProfile.userId, title, body, link);
+    }
+
+    // Schedule 15-min reminder via Inngest
+    const reminderAt = new Date(slot.startsAt.getTime() - 15 * 60 * 1000);
+    if (booking && reminderAt > new Date()) {
+      try {
+        await inngest.send({
+          name: "mentor.slot.booked",
+          data: {
+            bookingId: booking.id,
+            slotId,
+            teamId,
+            mentorUserId: mentorProfile.userId,
+            eventId: mentorProfile.eventId,
+            startsAt: slot.startsAt.toISOString(),
+          },
+          ts: reminderAt.getTime(),
+        });
+      } catch (err) {
+        console.warn("[inngest] Could not schedule session reminder (key not configured?):", err);
+      }
+    }
+  }
 
   revalidatePath(`/events`);
   return { success: true };

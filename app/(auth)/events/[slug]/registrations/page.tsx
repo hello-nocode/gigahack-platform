@@ -30,65 +30,48 @@ export default async function RegistrationsPage({
   };
 
   return (
-    <main className="bg-slate-900 p-8 text-white">
-      <div className="mx-auto max-w-4xl">
+    <main className="gh-page">
+      <div className="gh-page-inner">
         <div className="mb-6 flex items-center justify-between">
-          <Button asChild variant="ghost" className="text-slate-400 hover:text-white">
-            <Link href={`/events/${slug}`}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Event
-            </Link>
+          <Button asChild variant="ghost">
+            <Link href={`/events/${slug}`}><ArrowLeft className="mr-2 h-4 w-4" />Back to Event</Link>
           </Button>
-
-          {/* Toggle registration open/closed */}
           <form action={async () => {
             "use server";
             await toggleRegistrationOpen(event.id, !event.registrationOpen);
           }}>
-            <button
-              type="submit"
-              className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                event.registrationOpen
-                  ? "border-green-700/50 bg-green-900/20 text-green-300 hover:bg-green-900/40"
-                  : "border-slate-600 bg-slate-800 text-slate-400 hover:bg-slate-700"
-              }`}
-            >
-              {event.registrationOpen ? (
-                <><ToggleRight className="h-4 w-4" /> Registration Open</>
-              ) : (
-                <><ToggleLeft className="h-4 w-4" /> Registration Closed</>
-              )}
+            <button type="submit" style={{
+              display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px",
+              fontSize: "13px", fontFamily: "var(--font-mono)", fontWeight: 500, cursor: "pointer",
+              border: event.registrationOpen ? "1px solid var(--green)" : "1px solid var(--border)",
+              background: event.registrationOpen ? "var(--green-veil)" : "var(--surface-2)",
+              color: event.registrationOpen ? "var(--green)" : "var(--fg-3)",
+            }}>
+              {event.registrationOpen ? <><ToggleRight className="h-4 w-4" /> Registration Open</> : <><ToggleLeft className="h-4 w-4" /> Registration Closed</>}
             </button>
           </form>
         </div>
 
-        <h1 className="mb-1 text-3xl font-bold">Registrations</h1>
-        <p className="mb-8 text-slate-400">{event.title} · {registrations.length} total</p>
+        <p className="gh-kicker mb-1">» Registrations</p>
+        <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "28px", letterSpacing: "-0.02em", marginBottom: "4px" }}>Registrations</h1>
+        <p style={{ marginBottom: "28px", fontSize: "13px", color: "var(--fg-3)", fontFamily: "var(--font-mono)" }}>{event.title} · {registrations.length} total</p>
 
-        {/* Stats row */}
         <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {(["pending", "approved", "rejected", "withdrawn"] as const).map((s) => (
-            <div key={s} className={`rounded-xl border p-4 text-center ${
-              s === "pending" ? "border-yellow-700/40 bg-yellow-900/10" :
-              s === "approved" ? "border-green-700/40 bg-green-900/10" :
-              s === "rejected" ? "border-red-700/40 bg-red-900/10" :
-              "border-slate-700 bg-slate-800/40"
-            }`}>
-              <p className={`text-2xl font-bold ${
-                s === "pending" ? "text-yellow-300" :
-                s === "approved" ? "text-green-300" :
-                s === "rejected" ? "text-red-300" :
-                "text-slate-400"
-              }`}>{grouped[s].length}</p>
-              <p className="text-xs capitalize text-slate-400 mt-0.5">{s}</p>
+            <div key={s} className="p-4 text-center" style={{
+              background: s === "pending" ? "rgba(232,229,83,0.06)" : s === "approved" ? "var(--green-veil)" : s === "rejected" ? "rgba(255,71,87,0.06)" : "var(--surface-2)",
+              border: `1px solid ${s === "pending" ? "var(--warn)" : s === "approved" ? "var(--green)" : s === "rejected" ? "var(--danger)" : "var(--border)"}`,
+            }}>
+              <p style={{ fontSize: "28px", fontFamily: "var(--font-display)", fontWeight: 700, color: s === "pending" ? "var(--warn)" : s === "approved" ? "var(--green)" : s === "rejected" ? "var(--danger)" : "var(--fg-3)" }}>{grouped[s].length}</p>
+              <p style={{ fontSize: "11px", fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--fg-faint)", marginTop: "2px" }}>{s}</p>
             </div>
           ))}
         </div>
 
         {registrations.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-700 p-16 text-center">
-            <Users className="mx-auto mb-4 h-10 w-10 text-slate-600" />
-            <p className="text-slate-400">No registrations yet.</p>
+          <div className="p-16 text-center" style={{ border: "1px dashed var(--border-strong)" }}>
+            <Users className="mx-auto mb-4 h-10 w-10" style={{ color: "var(--fg-faint)" }} />
+            <p style={{ color: "var(--fg-3)" }}>No registrations yet.</p>
           </div>
         ) : (
           <div className="space-y-8">
@@ -97,65 +80,59 @@ export default async function RegistrationsPage({
               if (group.length === 0) return null;
               return (
                 <section key={status}>
-                  <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400 capitalize">
-                    {status} ({group.length})
-                  </h2>
+                  <p className="gh-kicker mb-3">» {status} ({group.length})</p>
                   <div className="space-y-2">
                     {group.map((reg) => {
-                      const displayName = reg.firstName && reg.lastName
-                        ? `${reg.firstName} ${reg.lastName}`
-                        : reg.name ?? reg.email;
+                      const displayName = reg.firstName && reg.lastName ? `${reg.firstName} ${reg.lastName}` : reg.name ?? reg.email;
                       const avatar = reg.avatarUrl ?? reg.image;
                       return (
-                        <div key={reg.id} className="rounded-xl border border-slate-700 bg-slate-800/50 p-5">
+                        <div key={reg.id} className="gh-card p-5">
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex items-center gap-3">
                               {avatar ? (
-                                <img src={avatar} alt={displayName} className="h-9 w-9 rounded-full object-cover" />
+                                <img src={avatar} alt={displayName} style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                               ) : (
-                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-700 text-sm font-bold">
+                                <div style={{ width: 36, height: 36, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--ink-650)", fontWeight: 700, fontSize: "14px" }}>
                                   {displayName[0]?.toUpperCase()}
                                 </div>
                               )}
                               <div>
-                                <p className="font-medium">{displayName}</p>
-                                <p className="text-xs text-slate-500">{reg.email}</p>
-                                <div className="mt-0.5 flex items-center gap-2">
-                                  <p className="text-xs text-slate-600">
-                                    {new Date(reg.createdAt).toLocaleDateString("en-GB")}
-                                  </p>
+                                <p style={{ fontWeight: 500 }}>{displayName}</p>
+                                <p style={{ fontSize: "12px", color: "var(--fg-3)", fontFamily: "var(--font-mono)" }}>{reg.email}</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <p style={{ fontSize: "11px", color: "var(--fg-faint)", fontFamily: "var(--font-mono)" }}>{new Date(reg.createdAt).toLocaleDateString("en-GB")}</p>
                                   {reg.ticketNumber && (
-                                    <span className="inline-flex items-center gap-1 rounded bg-blue-900/30 px-1.5 py-0.5 text-xs font-mono text-blue-300 border border-blue-800/40">
-                                      <Ticket className="h-3 w-3" />{reg.ticketNumber}
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "3px", padding: "1px 6px", fontSize: "11px", fontFamily: "var(--font-mono)", color: "var(--info)", background: "rgba(61,165,255,0.08)", border: "1px solid rgba(61,165,255,0.2)" }}>
+                                      <Ticket style={{ width: 10, height: 10 }} />{reg.ticketNumber}
                                     </span>
                                   )}
                                 </div>
                               </div>
                             </div>
                             {status === "approved" && reg.ticketNumber && (
-                              <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-green-900/30 border border-green-700/40 px-2.5 py-0.5 text-xs text-green-300">
-                                <Ticket className="h-3 w-3" /> Ticket verified
+                              <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: "4px", padding: "2px 8px", fontSize: "11px", fontFamily: "var(--font-mono)", color: "var(--green)", background: "var(--green-veil)", border: "1px solid var(--green)" }}>
+                                <Ticket style={{ width: 10, height: 10 }} /> Ticket verified
                               </span>
                             )}
                           </div>
                           {(reg.motivation || reg.skills || reg.experience) && (
-                            <div className="mt-3 space-y-1.5 border-t border-slate-700 pt-3">
+                            <div className="mt-3 space-y-2" style={{ borderTop: "1px solid var(--line)", paddingTop: "12px" }}>
                               {reg.motivation && (
                                 <div>
-                                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Motivation</p>
-                                  <p className="text-sm text-slate-300">{reg.motivation}</p>
+                                  <p style={{ fontSize: "10px", fontFamily: "var(--font-mono)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--fg-faint)" }}>Motivation</p>
+                                  <p style={{ fontSize: "13px", color: "var(--fg-2)", marginTop: "2px" }}>{reg.motivation}</p>
                                 </div>
                               )}
                               {reg.skills && (
                                 <div>
-                                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Skills</p>
-                                  <p className="text-sm text-slate-300">{reg.skills}</p>
+                                  <p style={{ fontSize: "10px", fontFamily: "var(--font-mono)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--fg-faint)" }}>Skills</p>
+                                  <p style={{ fontSize: "13px", color: "var(--fg-2)", marginTop: "2px" }}>{reg.skills}</p>
                                 </div>
                               )}
                               {reg.experience && (
                                 <div>
-                                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Experience</p>
-                                  <p className="text-sm text-slate-300">{reg.experience}</p>
+                                  <p style={{ fontSize: "10px", fontFamily: "var(--font-mono)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--fg-faint)" }}>Experience</p>
+                                  <p style={{ fontSize: "13px", color: "var(--fg-2)", marginTop: "2px" }}>{reg.experience}</p>
                                 </div>
                               )}
                             </div>

@@ -10,13 +10,13 @@ interface PageProps {
   params: Promise<{ eventId: string }>;
 }
 
-const statusColors: Record<string, string> = {
-  draft: "bg-slate-700 text-slate-300",
-  registration_open: "bg-blue-900/60 text-blue-300",
-  applications_open: "bg-green-900/60 text-green-300",
-  in_progress: "bg-yellow-900/60 text-yellow-300",
-  judging: "bg-purple-900/60 text-purple-300",
-  completed: "bg-emerald-900/60 text-emerald-300",
+const statusStyles: Record<string, { background: string; color: string }> = {
+  draft: { background: "var(--surface-3)", color: "var(--fg-faint)" },
+  registration_open: { background: "rgba(0,170,255,0.1)", color: "#4FC3F7" },
+  applications_open: { background: "var(--green-veil)", color: "var(--green)" },
+  in_progress: { background: "rgba(232,229,83,0.1)", color: "var(--warn)" },
+  judging: { background: "rgba(179,136,255,0.1)", color: "#CE93D8" },
+  completed: { background: "var(--green-veil)", color: "var(--green)" },
 };
 
 export default async function EventStatusPage({ params }: PageProps) {
@@ -36,48 +36,35 @@ export default async function EventStatusPage({ params }: PageProps) {
   const statusLabel = await getStatusLabel(event.status);
 
   return (
-    <main className="min-h-screen bg-slate-900 p-8 text-white">
-      <div className="mx-auto max-w-3xl">
+    <main className="gh-page">
+      <div style={{ margin: "0 auto", maxWidth: "48rem" }}>
         <div className="mb-8">
-          <Button asChild variant="ghost" className="mb-4 text-slate-400 hover:text-white">
-            <Link href={`/events/${event.slug}`}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Event
-            </Link>
+          <Button asChild variant="ghost" className="mb-4">
+            <Link href={`/events/${event.slug}`}><ArrowLeft className="mr-2 h-4 w-4" />Back to Event</Link>
           </Button>
-          <h1 className="text-3xl font-bold">Event Status</h1>
-          <p className="mt-1 text-sm text-slate-400">{event.title}</p>
+          <p className="gh-kicker mb-1">» Admin</p>
+          <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "28px", letterSpacing: "-0.02em" }}>Event Status</h1>
+          <p style={{ marginTop: "4px", fontSize: "13px", color: "var(--fg-3)" }}>{event.title}</p>
         </div>
 
-        {/* Current Status */}
-        <div className="mb-8 rounded-2xl border border-slate-700 bg-slate-800/50 p-8">
-          <h2 className="mb-4 text-lg font-semibold">Current Status</h2>
-          <div className="flex items-center gap-4">
-            <span className={`rounded-full px-4 py-2 text-lg font-medium ${statusColors[event.status]}`}>
-              {statusLabel}
-            </span>
-          </div>
+        <div className="mb-6 gh-card p-6">
+          <p className="gh-kicker mb-3">» Current Status</p>
+          <span style={{ display: "inline-block", padding: "4px 12px", fontSize: "13px", fontFamily: "var(--font-mono)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", ...(statusStyles[event.status] ?? { background: "var(--surface-3)", color: "var(--fg-faint)" }) }}>
+            {statusLabel}
+          </span>
         </div>
 
-        {/* Available Transitions */}
-        <div className="mb-8 rounded-2xl border border-slate-700 bg-slate-800/50 p-8">
-          <h2 className="mb-4 text-lg font-semibold">Available Transitions</h2>
+        <div className="mb-6 gh-card p-6">
+          <p className="gh-kicker mb-4">» Available Transitions</p>
           {validTransitions.length === 0 ? (
-            <p className="text-slate-500">No transitions available from this state.</p>
+            <p style={{ fontSize: "13px", color: "var(--fg-faint)" }}>No transitions available from this state.</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {validTransitions.map((transition) => (
-                <form key={transition} action={async () => {
-                  "use server";
-                  await updateEventStatus(event.id, transition);
-                }}>
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    className="w-full justify-between border-slate-600 bg-slate-800 hover:bg-slate-700"
-                  >
+                <form key={transition} action={async () => { "use server"; await updateEventStatus(event.id, transition); }}>
+                  <Button type="submit" variant="outline" className="w-full justify-between">
                     <span>Transition to {getStatusLabel(transition)}</span>
-                    <span className={`ml-2 rounded-full px-2 py-0.5 text-xs ${statusColors[transition]}`}>
+                    <span style={{ marginLeft: "8px", padding: "1px 6px", fontSize: "10px", fontFamily: "var(--font-mono)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em", ...(statusStyles[transition] ?? { background: "var(--surface-3)", color: "var(--fg-faint)" }) }}>
                       {getStatusLabel(transition)}
                     </span>
                   </Button>
@@ -87,43 +74,24 @@ export default async function EventStatusPage({ params }: PageProps) {
           )}
         </div>
 
-        {/* Status Flow Diagram */}
-        <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-8">
-          <h2 className="mb-4 text-lg font-semibold">Status Flow</h2>
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className={`rounded px-2 py-1 ${event.status === "draft" ? statusColors.draft : "text-slate-500"}`}>
-              Draft
-            </span>
-            <span className="text-slate-600">→</span>
-            <span className={`rounded px-2 py-1 ${event.status === "registration_open" ? statusColors.registration_open : "text-slate-500"}`}>
-              Registration Open
-            </span>
-            <span className="text-slate-600">→</span>
-            <span className={`rounded px-2 py-1 ${event.status === "applications_open" ? statusColors.applications_open : "text-slate-500"}`}>
-              Applications Open
-            </span>
-            <span className="text-slate-600">→</span>
-            <span className={`rounded px-2 py-1 ${event.status === "in_progress" ? statusColors.in_progress : "text-slate-500"}`}>
-              In Progress
-            </span>
-            <span className="text-slate-600">→</span>
-            <span className={`rounded px-2 py-1 ${event.status === "judging" ? statusColors.judging : "text-slate-500"}`}>
-              Judging
-            </span>
-            <span className="text-slate-600">→</span>
-            <span className={`rounded px-2 py-1 ${event.status === "completed" ? statusColors.completed : "text-slate-500"}`}>
-              Completed
-            </span>
+        <div className="gh-card p-6">
+          <p className="gh-kicker mb-4">» Status Flow</p>
+          <div className="flex flex-wrap items-center gap-2">
+            {(["draft", "registration_open", "applications_open", "in_progress", "judging", "completed"] as const).map((s, i, arr) => (
+              <>
+                <span key={s} style={{ padding: "2px 8px", fontSize: "11px", fontFamily: "var(--font-mono)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em", opacity: event.status === s ? 1 : 0.35, ...(statusStyles[s] ?? {}) }}>
+                  {getStatusLabel(s)}
+                </span>
+                {i < arr.length - 1 && <span key={`arrow-${s}`} style={{ color: "var(--fg-faint)" }}>→</span>}
+              </>
+            ))}
           </div>
 
-          <div className="mt-6 flex items-start gap-3 rounded-lg border border-amber-700/50 bg-amber-900/20 p-4">
-            <AlertCircle className="mt-0.5 h-5 w-5 text-amber-400" />
-            <div className="text-sm text-amber-200">
-              <p className="font-medium">Important</p>
-              <p className="mt-1 text-amber-200/80">
-                Status transitions trigger automated actions. Moving forward closes previous stages
-                (e.g., closing registration freezes teams).
-              </p>
+          <div className="mt-6 flex items-start gap-3 p-4" style={{ border: "1px solid var(--warn)", background: "rgba(232,229,83,0.06)" }}>
+            <AlertCircle style={{ marginTop: "2px", width: 16, height: 16, flexShrink: 0, color: "var(--warn)" }} />
+            <div style={{ fontSize: "13px" }}>
+              <p style={{ fontWeight: 600, color: "var(--warn)" }}>Important</p>
+              <p style={{ marginTop: "4px", color: "var(--fg-3)" }}>Status transitions trigger automated actions. Moving forward closes previous stages (e.g., closing registration freezes teams).</p>
             </div>
           </div>
         </div>

@@ -109,31 +109,28 @@ export default async function ChallengesPage({
     : enrichedChallenges.map((c) => c.challenge);
 
   return (
-    <main className="min-h-screen bg-slate-900 p-8 text-white">
-      <div className="mx-auto max-w-4xl">
+    <main className="gh-page">
+      <div className="gh-page-inner">
         <div className="mb-6 flex items-center justify-between">
-          <Button asChild variant="ghost" className="text-slate-400 hover:text-white">
-            <Link href={`/events/${slug}`}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Event
-            </Link>
+          <Button asChild variant="ghost">
+            <Link href={`/events/${slug}`}><ArrowLeft className="mr-2 h-4 w-4" />Back to Event</Link>
           </Button>
           {canCreate && (
-            <Button asChild className="bg-blue-600 hover:bg-blue-700">
+            <Button asChild>
               <Link href={`/events/${slug}/challenges/new${partnerProfile ? `?partnerId=${partnerProfile.id}` : ""}`}>
-                <Plus className="mr-2 h-4 w-4" />
-                New Challenge
+                <Plus className="mr-2 h-4 w-4" />New Challenge
               </Link>
             </Button>
           )}
         </div>
 
-        <h1 className="mb-8 text-3xl font-bold">Challenges</h1>
+        <p className="gh-kicker mb-1">» Challenges</p>
+        <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "28px", letterSpacing: "-0.02em", marginBottom: "28px" }}>Challenges</h1>
 
         {visibleChallenges.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-700 p-16 text-center">
-            <Lightbulb className="mx-auto mb-4 h-10 w-10 text-slate-600" />
-            <p className="text-slate-400">No challenges published yet.</p>
+          <div className="p-16 text-center" style={{ border: "1px dashed var(--border-strong)" }}>
+            <Lightbulb className="mx-auto mb-4 h-10 w-10" style={{ color: "var(--fg-faint)" }} />
+            <p style={{ color: "var(--fg-3)" }}>No challenges published yet.</p>
           </div>
         ) : isParticipant ? (
           // Participant view - rich challenge cards with partner info and Apply buttons
@@ -158,76 +155,40 @@ export default async function ChallengesPage({
               }
 
               return (
-                <div
-                  key={c.challenge.id}
-                  className="rounded-xl border border-slate-700 bg-slate-800/50 p-6"
-                >
-                  {/* Partner header */}
+                <div key={c.challenge.id} className="gh-card p-6">
                   <div className="mb-4 flex items-center gap-3">
                     {c.partner.logoUrl ? (
-                      <Image
-                        src={c.partner.logoUrl}
-                        alt={c.partner.companyName}
-                        width={40}
-                        height={40}
-                        className="rounded-lg object-cover"
-                      />
+                      <Image src={c.partner.logoUrl} alt={c.partner.companyName} width={36} height={36} style={{ objectFit: "cover" }} />
                     ) : null}
-                    <span className="text-sm font-medium text-slate-300">
-                      {c.partner.companyName}
-                    </span>
+                    <span style={{ fontSize: "13px", fontFamily: "var(--font-mono)", color: "var(--fg-3)" }}>{c.partner.companyName}</span>
                   </div>
 
-                  {/* Title and description */}
-                  <Link
-                    href={`/events/${slug}/challenges/${c.challenge.slug}`}
-                    className="group block"
-                  >
-                    <h2 className="text-xl font-semibold group-hover:text-blue-400 transition-colors">
-                      {c.challenge.title}
-                    </h2>
+                  <Link href={`/events/${slug}/challenges/${c.challenge.slug}`} className="group block">
+                    <h2 style={{ fontSize: "18px", fontWeight: 600, transition: "color 0.15s" }} className="group-hover:text-[var(--green)]">{c.challenge.title}</h2>
                     {c.challenge.description && (
-                      <p className="mt-2 line-clamp-2 text-sm text-slate-400">
-                        {c.challenge.description}
-                      </p>
+                      <p style={{ marginTop: "6px", fontSize: "13px", color: "var(--fg-3)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{c.challenge.description}</p>
                     )}
                   </Link>
 
-                  {/* Prizes */}
                   {c.prizes.length > 0 && (
                     <div className="mt-4 flex items-center gap-2">
-                      <Trophy className="h-4 w-4 text-yellow-400" />
-                      <span className="text-sm text-slate-300">
-                        {c.prizes.map((p) => `${p.place}: ${p.value} EUR`).join(", ")}
-                      </span>
+                      <Trophy className="h-4 w-4" style={{ color: "var(--warn)" }} />
+                      <span style={{ fontSize: "13px", color: "var(--fg-2)" }}>{c.prizes.map((p) => `${p.place}: ${p.value} EUR`).join(", ")}</span>
                     </div>
                   )}
 
-                  {/* Footer with Apply button */}
                   <div className="mt-4 flex items-center justify-between">
-                    <div className="text-xs text-slate-500">
-                      {c.challenge.maxTeams && (
-                        <span>{c.acceptedCount} / {c.challenge.maxTeams} teams</span>
-                      )}
+                    <div style={{ fontSize: "12px", color: "var(--fg-faint)", fontFamily: "var(--font-mono)" }}>
+                      {c.challenge.maxTeams && <span>{c.acceptedCount} / {c.challenge.maxTeams} teams</span>}
                     </div>
                     {userTeamId && !alreadyApplied ? (
-                      <ApplyButton
-                        teamId={userTeamId}
-                        challengeId={c.challenge.id}
-                        disabled={buttonDisabled}
-                        disabledReason={buttonReason}
-                        isFull={isFull}
-                      />
+                      <ApplyButton teamId={userTeamId} challengeId={c.challenge.id} disabled={buttonDisabled} disabledReason={buttonReason} isFull={isFull} />
                     ) : userTeamId && alreadyApplied ? (
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        c.teamStatus?.status === "accepted"
-                          ? "bg-green-900/60 text-green-300"
-                          : "bg-yellow-900/60 text-yellow-300"
-                      }`}>
+                      <span style={{ padding: "2px 8px", fontSize: "11px", fontFamily: "var(--font-mono)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em", background: c.teamStatus?.status === "accepted" ? "var(--green-veil)" : "rgba(232,229,83,0.1)", color: c.teamStatus?.status === "accepted" ? "var(--green)" : "var(--warn)", border: `1px solid ${c.teamStatus?.status === "accepted" ? "var(--green)" : "var(--warn)"}` }}>
                         {c.teamStatus?.status === "accepted" ? "Accepted" : "Pending"}
                       </span>
                     ) : (
-                      <span className="text-xs text-slate-500">Join a team to apply</span>
+                      <span style={{ fontSize: "12px", color: "var(--fg-faint)", fontFamily: "var(--font-mono)" }}>Join a team to apply</span>
                     )}
                   </div>
                 </div>
@@ -238,32 +199,20 @@ export default async function ChallengesPage({
           // Admin/Partner view - simple list with status pills
           <div className="space-y-4">
             {visibleChallenges.map((c) => (
-              <Link
-                key={c.id}
-                href={`/events/${slug}/challenges/${c.slug}`}
-                className="block rounded-xl border border-slate-700 bg-slate-800/50 p-6 transition-colors hover:border-slate-500 hover:bg-slate-800"
-              >
+              <Link key={c.id} href={`/events/${slug}/challenges/${c.slug}`} className="gh-card gh-card-hover block p-6">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-lg font-semibold">{c.title}</h2>
+                    <h2 style={{ fontSize: "16px", fontWeight: 600 }}>{c.title}</h2>
                     {c.description && (
-                      <p className="mt-1 line-clamp-2 text-sm text-slate-400">
-                        {c.description}
-                      </p>
+                      <p style={{ marginTop: "4px", fontSize: "13px", color: "var(--fg-3)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{c.description}</p>
                     )}
                   </div>
-                  <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                    c.status === "published"
-                      ? "bg-green-900/60 text-green-300"
-                      : c.status === "archived"
-                        ? "bg-slate-700 text-slate-400"
-                        : "bg-yellow-900/60 text-yellow-300"
-                  }`}>
+                  <span style={{ flexShrink: 0, padding: "2px 8px", fontSize: "11px", fontFamily: "var(--font-mono)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em", background: c.status === "published" ? "var(--green-veil)" : c.status === "archived" ? "var(--ink-650)" : "rgba(232,229,83,0.1)", color: c.status === "published" ? "var(--green)" : c.status === "archived" ? "var(--fg-faint)" : "var(--warn)" }}>
                     {c.status}
                   </span>
                 </div>
                 {c.maxTeams && (
-                  <p className="mt-3 text-xs text-slate-500">Max {c.maxTeams} teams</p>
+                  <p style={{ marginTop: "10px", fontSize: "12px", color: "var(--fg-faint)", fontFamily: "var(--font-mono)" }}>Max {c.maxTeams} teams</p>
                 )}
               </Link>
             ))}

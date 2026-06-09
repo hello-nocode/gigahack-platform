@@ -45,26 +45,24 @@ export default async function ProfilePage() {
   const avatarSrc = profile.avatarUrl ?? profile.image;
 
   return (
-    <main className="bg-slate-900 p-8 text-white">
-      <div className="mx-auto max-w-2xl">
-        {/* Profile header */}
+    <main className="gh-page">
+      <div style={{ margin: "0 auto", maxWidth: "40rem" }}>
         <div className="mb-8 flex items-center gap-5">
           {avatarSrc ? (
-            <img src={avatarSrc} alt={displayName} className="h-16 w-16 rounded-full object-cover ring-2 ring-slate-700" />
+            <img src={avatarSrc} alt={displayName} style={{ width: 60, height: 60, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--border)" }} />
           ) : (
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-700 text-xl font-bold text-white ring-2 ring-slate-600">
+            <div style={{ width: 60, height: 60, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--ink-650)", fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 700, color: "var(--fg-2)" }}>
               {(profile.firstName?.[0] ?? profile.name?.[0] ?? profile.email?.[0] ?? "?").toUpperCase()}
             </div>
           )}
           <div>
-            <h1 className="text-2xl font-bold">{displayName}</h1>
-            <p className="text-slate-400">{profile.email}</p>
+            <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "22px", letterSpacing: "-0.02em" }}>{displayName}</h1>
+            <p style={{ fontSize: "13px", color: "var(--fg-3)", fontFamily: "var(--font-mono)", marginTop: "2px" }}>{profile.email}</p>
           </div>
         </div>
 
-        {/* Edit form */}
-        <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-8">
-          <h2 className="mb-6 text-lg font-semibold">Personal Information</h2>
+        <div className="gh-card p-8">
+          <p className="gh-kicker mb-4">» Personal Information</p>
           <ProfileForm
             defaultValues={{
               firstName: profile.firstName,
@@ -78,26 +76,22 @@ export default async function ProfilePage() {
           />
         </div>
 
-        {/* Role-specific sections */}
         {partnerList.length > 0 && (
-          <div className="mt-6 rounded-2xl border border-violet-700/30 bg-violet-900/10 p-6">
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-violet-200">
-              <Building2 className="h-5 w-5" /> Partner Profiles
-            </h2>
+          <div className="mt-6 p-6" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+            <p className="gh-kicker mb-4" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <Building2 style={{ width: 13, height: 13 }} /> Partner Profiles
+            </p>
             <div className="space-y-2">
               {partnerList.map((p) => {
                 const ev = eventMap[p.eventId];
                 return (
-                  <Link
-                    key={p.id}
-                    href={`/events/${ev?.slug}/partners/${p.id}/edit`}
-                    className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 hover:border-violet-600 transition-colors"
-                  >
+                  <Link key={p.id} href={`/events/${ev?.slug}/partners/${p.id}/edit`}
+                    className="gh-card gh-card-hover flex items-center justify-between px-4 py-3">
                     <div>
-                      <p className="font-medium">{p.companyName}</p>
-                      {ev && <p className="text-xs text-slate-400">{ev.title} · {ev.year}</p>}
+                      <p style={{ fontWeight: 500 }}>{p.companyName}</p>
+                      {ev && <p style={{ fontSize: "12px", color: "var(--fg-3)", fontFamily: "var(--font-mono)", marginTop: "2px" }}>{ev.title} · {ev.year}</p>}
                     </div>
-                    <span className="text-xs text-slate-400">Edit →</span>
+                    <span style={{ fontSize: "12px", color: "var(--fg-faint)", fontFamily: "var(--font-mono)" }}>Edit →</span>
                   </Link>
                 );
               })}
@@ -116,41 +110,35 @@ export default async function ProfilePage() {
           return (
             <>
               {activeEvts.length > 0 && (
-                <div className="mt-6 rounded-2xl border border-green-700/30 bg-green-900/10 p-6">
-                  <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-green-200">
-                    <Users className="h-5 w-5" /> Event Participation
-                  </h2>
+                <div className="mt-6 p-6" style={{ background: "var(--green-veil)", border: "1px solid var(--green)" }}>
+                  <p className="gh-kicker mb-4" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <Users style={{ width: 13, height: 13 }} /> Event Participation
+                  </p>
                   <div className="space-y-2">
                     {activeEvts.map((r) => (
-                      <Link
-                        key={r.eventId}
-                        href={`/events/${r.ev!.slug}/teams`}
-                        className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 hover:border-green-600 transition-colors"
-                      >
-                        <p className="font-medium">{r.ev!.title} · {r.ev!.year}</p>
-                        <span className="text-xs text-slate-400">My Team →</span>
+                      <Link key={r.eventId} href={`/events/${r.ev!.slug}/teams`}
+                        className="gh-card gh-card-hover flex items-center justify-between px-4 py-3">
+                        <p style={{ fontWeight: 500 }}>{r.ev!.title} · {r.ev!.year}</p>
+                        <span style={{ fontSize: "12px", color: "var(--fg-faint)", fontFamily: "var(--font-mono)" }}>My Team →</span>
                       </Link>
                     ))}
                   </div>
                 </div>
               )}
               {pastEvts.length > 0 && (
-                <div className="mt-6 rounded-2xl border border-slate-700/50 bg-slate-800/30 p-6">
-                  <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-400">
-                    <History className="h-5 w-5" /> Past Events
-                  </h2>
+                <div className="mt-6 p-6" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+                  <p className="gh-kicker mb-4" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <History style={{ width: 13, height: 13 }} /> Past Events
+                  </p>
                   <div className="space-y-2">
                     {pastEvts.map((r) => (
-                      <Link
-                        key={r.eventId}
-                        href={`/events/${r.ev!.slug}/teams`}
-                        className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 hover:border-slate-500 transition-colors"
-                      >
+                      <Link key={r.eventId} href={`/events/${r.ev!.slug}/teams`}
+                        className="gh-card gh-card-hover flex items-center justify-between px-4 py-3">
                         <div>
-                          <p className="font-medium text-slate-300">{r.ev!.title} · {r.ev!.year}</p>
-                          <p className="text-xs text-slate-500">Completed · Read only</p>
+                          <p style={{ fontWeight: 500, color: "var(--fg-2)" }}>{r.ev!.title} · {r.ev!.year}</p>
+                          <p style={{ fontSize: "12px", color: "var(--fg-faint)", fontFamily: "var(--font-mono)", marginTop: "2px" }}>Completed · Read only</p>
                         </div>
-                        <span className="text-xs text-slate-500">View →</span>
+                        <span style={{ fontSize: "12px", color: "var(--fg-faint)", fontFamily: "var(--font-mono)" }}>View →</span>
                       </Link>
                     ))}
                   </div>

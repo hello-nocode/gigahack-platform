@@ -85,6 +85,20 @@
       "when": 1779994823394,
       "tag": "0011_wet_scarlet_spider",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1780003830455,
+      "tag": "0012_tidy_cobalt_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1780043376501,
+      "tag": "0013_regular_loki",
+      "breakpoints": true
     }
   ]
 }

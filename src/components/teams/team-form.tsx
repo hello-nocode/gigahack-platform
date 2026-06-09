@@ -58,91 +58,47 @@ export function TeamForm({ eventId, eventSlug, defaultValues, memberCount = 0, m
 
   return (
     <form action={formAction} className="space-y-5">
-      {state?.error && (
-        <div className="rounded-lg border border-red-700/50 bg-red-900/30 p-4">
-          <p className="text-sm text-red-300">{state.error}</p>
-        </div>
-      )}
+      {state?.error && <div className="gh-banner-error">{state.error}</div>}
 
-      <div className="space-y-1">
-        <label className="text-sm font-medium text-slate-300">Team Name *</label>
-        <Input
-          name="name"
-          defaultValue={defaultValues?.name ?? ""}
-          required
-          minLength={2}
-          maxLength={60}
-          placeholder="Awesome Hackers"
-          className="border-slate-600 bg-slate-700/50 text-white placeholder:text-slate-500"
-        />
+      <div>
+        <label className="gh-label">Team Name *</label>
+        <Input name="name" defaultValue={defaultValues?.name ?? ""} required minLength={2} maxLength={60} placeholder="Awesome Hackers" />
       </div>
 
-      <div className="space-y-1">
-        <label className="text-sm font-medium text-slate-300">Description</label>
-        <textarea
-          name="description"
-          defaultValue={defaultValues?.description ?? ""}
-          rows={3}
-          maxLength={500}
-          placeholder="What's your team about?"
-          className="w-full rounded-md border border-slate-600 bg-slate-700/50 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+      <div>
+        <label className="gh-label">Description</label>
+        <textarea name="description" defaultValue={defaultValues?.description ?? ""} rows={3} maxLength={500}
+          placeholder="What's your team about?" className="gh-textarea" />
       </div>
 
       {isEditing && (
-        <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
+        <div className="p-4" style={{ background: "var(--surface-3)", border: "1px solid var(--border)" }}>
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-medium text-white">Accept Join Requests</h3>
-              <p className="text-xs text-slate-400">
-                Allow participants to request to join your team
-              </p>
+              <p style={{ fontSize: "14px", fontWeight: 500, color: "var(--fg-1)" }}>Accept Join Requests</p>
+              <p style={{ fontSize: "12px", color: "var(--fg-3)", marginTop: "2px" }}>Allow participants to request to join your team</p>
             </div>
             <button
               type="button"
               onClick={handleToggleAcceptingNewMembers}
               disabled={!canToggleJoinSetting}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${
-                acceptingNewMembers ? "bg-blue-600" : "bg-slate-600"
-              } ${!canToggleJoinSetting ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+              data-on={acceptingNewMembers ? "true" : "false"}
+              className="gh-toggle"
               aria-label={acceptingNewMembers ? "Disable join requests" : "Enable join requests"}
             >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  acceptingNewMembers ? "translate-x-6" : "translate-x-1"
-                }`}
-              />
+              <span className="gh-toggle-thumb" />
             </button>
           </div>
-          {joinSettingError && (
-            <p className="mt-2 text-xs text-red-400">{joinSettingError}</p>
-          )}
-          {isFull && (
-            <p className="mt-2 text-xs text-amber-400">
-              Team is full ({memberCount}/{maxTeamSize} members). Cannot accept new members.
-            </p>
-          )}
-          {isBelowMin && (
-            <p className="mt-2 text-xs text-amber-400">
-              Team needs at least {minTeamSize} members (currently {memberCount}). You must accept join requests.
-            </p>
-          )}
-          {!isFull && !isBelowMin && memberCount > 0 && (
-            <p className="mt-2 text-xs text-slate-500">
-              {memberCount} / {maxTeamSize} members
-            </p>
-          )}
+          {joinSettingError && <p style={{ marginTop: "8px", fontSize: "12px", color: "var(--danger)" }}>{joinSettingError}</p>}
+          {isFull && <p style={{ marginTop: "8px", fontSize: "12px", color: "var(--warn)", fontFamily: "var(--font-mono)" }}>Team is full ({memberCount}/{maxTeamSize} members). Cannot accept new members.</p>}
+          {isBelowMin && <p style={{ marginTop: "8px", fontSize: "12px", color: "var(--warn)", fontFamily: "var(--font-mono)" }}>Team needs at least {minTeamSize} members (currently {memberCount}). You must accept join requests.</p>}
+          {!isFull && !isBelowMin && memberCount > 0 && <p style={{ marginTop: "8px", fontSize: "12px", color: "var(--fg-faint)", fontFamily: "var(--font-mono)" }}>{memberCount} / {maxTeamSize} members</p>}
         </div>
       )}
 
       <div className="flex gap-3 pt-2">
-        <Button type="submit" disabled={isPending} className="bg-blue-600 hover:bg-blue-700">
-          {isPending ? "Saving..." : isEditing ? "Save Changes" : "Create Team"}
-        </Button>
-        <Button type="button" variant="outline" className="border-slate-500 bg-slate-800 text-white hover:bg-slate-700 hover:text-white"
-          onClick={() => router.back()}>
-          Cancel
-        </Button>
+        <Button type="submit" disabled={isPending}>{isPending ? "Saving..." : isEditing ? "Save Changes" : "Create Team"}</Button>
+        <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
       </div>
     </form>
   );

@@ -28,18 +28,16 @@ export default async function EditPartnerProfilePage({
   const boundAction = upsertPartnerProfile.bind(null, partnerId);
 
   return (
-    <main className="min-h-screen bg-slate-900 p-8 text-white">
-      <div className="mx-auto max-w-2xl">
+    <main className="gh-page">
+      <div style={{ margin: "0 auto", maxWidth: "40rem" }}>
         <div className="mb-8">
-          <Button asChild variant="ghost" className="mb-4 text-slate-400 hover:text-white">
-            <Link href={`/events/${slug}/partners/${partnerId}`}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Profile
-            </Link>
+          <Button asChild variant="ghost" className="mb-4">
+            <Link href={`/events/${slug}/partners/${partnerId}`}><ArrowLeft className="mr-2 h-4 w-4" />Back to Profile</Link>
           </Button>
-          <h1 className="text-3xl font-bold">Edit Partner Profile</h1>
+          <p className="gh-kicker mb-1">» Edit Profile</p>
+          <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "28px", letterSpacing: "-0.02em" }}>Edit Partner Profile</h1>
         </div>
-        <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-8">
+        <div className="gh-card p-8">
           <PartnerProfileForm action={boundAction} defaultValues={partner} redirectTo={`/events/${slug}/partners/${partnerId}`} />
         </div>
       </div>

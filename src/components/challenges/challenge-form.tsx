@@ -151,32 +151,23 @@ export function ChallengeForm({
 
   return (
     <form ref={formRef} action={formAction} className="space-y-8">
-      {state?.error && (
-        <div className="rounded-lg border border-red-700/50 bg-red-900/30 p-4">
-          <p className="text-sm text-red-300">{state.error}</p>
-        </div>
-      )}
+      {state?.error && <div className="gh-banner-error">{state.error}</div>}
 
       {/* ── Basic info ── */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-white">Basic Info</h2>
+        <p className="gh-kicker mb-4">» Basic Info</p>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1 sm:col-span-2">
-            <label className="text-sm font-medium text-slate-300">Title *</label>
-            <Input name="title" defaultValue={defaultValues?.title ?? ""} required
-              className="border-slate-600 bg-slate-700/50 text-white placeholder:text-slate-500"
-              placeholder="AI for Healthcare" />
+          <div className="sm:col-span-2">
+            <label className="gh-label">Title *</label>
+            <Input name="title" defaultValue={defaultValues?.title ?? ""} required placeholder="AI for Healthcare" />
           </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-slate-300">Slug *</label>
-            <Input name="slug" defaultValue={defaultValues?.slug ?? ""} required
-              className="border-slate-600 bg-slate-700/50 text-white placeholder:text-slate-500"
-              placeholder="ai-for-healthcare" />
+          <div>
+            <label className="gh-label">Slug *</label>
+            <Input name="slug" defaultValue={defaultValues?.slug ?? ""} required placeholder="ai-for-healthcare" />
           </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-slate-300">Status</label>
-            <select name="status" defaultValue={defaultValues?.status ?? "draft"}
-              className="h-10 w-full rounded-md border border-slate-600 bg-slate-700/50 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <div>
+            <label className="gh-label">Status</label>
+            <select name="status" defaultValue={defaultValues?.status ?? "draft"} className="gh-select">
               <option value="draft">Draft</option>
               {!isAdmin && (criteria.length === 0 || prizes.length === 0) ? null : (
                 <option value="published">Published</option>
@@ -184,166 +175,112 @@ export function ChallengeForm({
               <option value="archived">Archived</option>
             </select>
             {!isAdmin && (criteria.length === 0 || prizes.length === 0) && (
-              <p className="text-xs text-amber-400 mt-1">
+              <p style={{ marginTop: "4px", fontSize: "12px", color: "var(--warn)", fontFamily: "var(--font-mono)" }}>
                 {criteria.length === 0 && prizes.length === 0
                   ? "Add at least one prize and one judging criterion to publish"
-                  : criteria.length === 0
-                  ? "Add at least one judging criterion to publish"
+                  : criteria.length === 0 ? "Add at least one judging criterion to publish"
                   : "Add at least one prize to publish"}
               </p>
             )}
           </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-slate-300">Max Teams</label>
-            <Input name="maxTeams" type="number" defaultValue={defaultValues?.maxTeams ?? ""}
-              className="border-slate-600 bg-slate-700/50 text-white" placeholder="10" />
+          <div>
+            <label className="gh-label">Max Teams</label>
+            <Input name="maxTeams" type="number" defaultValue={defaultValues?.maxTeams ?? ""} placeholder="10" />
           </div>
         </div>
       </section>
 
       {/* ── Content ── */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-white">Content</h2>
+        <p className="gh-kicker mb-4">» Content</p>
         <div className="space-y-4">
           {(["description", "problemStatement", "expectedSolution", "techRequirements"] as const).map((field) => (
-            <div key={field} className="space-y-1">
-              <label className="text-sm font-medium text-slate-300">
+            <div key={field}>
+              <label className="gh-label">
                 {field === "description" ? "Overview" :
                  field === "problemStatement" ? "Problem Statement" :
                  field === "expectedSolution" ? "Expected Solution" : "Tech Requirements"}
               </label>
-              <textarea
-                name={field}
-                defaultValue={(defaultValues?.[field] as string) ?? ""}
-                rows={4}
-                className="w-full rounded-md border border-slate-600 bg-slate-700/50 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <textarea name={field} defaultValue={(defaultValues?.[field] as string) ?? ""} rows={4} className="gh-textarea" />
             </div>
           ))}
-
         </div>
       </section>
 
       {/* ── Judging Criteria ── */}
       <section>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">Judging Criteria</h2>
-          <span className={`text-sm font-semibold ${totalWeight === 100 ? "text-green-400" : "text-yellow-400"}`}>
+          <p className="gh-kicker" style={{ margin: 0 }}>» Judging Criteria</p>
+          <span style={{ fontSize: "13px", fontFamily: "var(--font-mono)", fontWeight: 600, color: totalWeight === 100 ? "var(--green)" : "var(--warn)" }}>
             {totalWeight}/100%
           </span>
         </div>
-
-        {criteriaError && (
-          <div className="mb-4 rounded-lg border border-red-700/50 bg-red-900/30 p-3">
-            <p className="text-sm text-red-300">{criteriaError}</p>
-          </div>
-        )}
-
+        {criteriaError && <div className="gh-banner-error mb-4">{criteriaError}</div>}
         <div className="space-y-3">
           {criteria.map((c, i) => (
-            <div key={c.id} className="rounded-xl border border-slate-700 bg-slate-800 p-4">
+            <div key={c.id} className="p-4" style={{ background: "var(--surface-3)", border: "1px solid var(--border)" }}>
               <div className="mb-3 flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-400">Criterion {i + 1}</span>
-                <button type="button" onClick={() => removeCriterion(c.id)}
-                  className="text-slate-500 hover:text-red-400 transition-colors">
+                <span style={{ fontSize: "11px", fontFamily: "var(--font-mono)", color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Criterion {i + 1}</span>
+                <button type="button" onClick={() => removeCriterion(c.id)} style={{ color: "var(--fg-faint)" }} className="transition-colors hover:text-[var(--danger)]">
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
-                <div className="space-y-1 sm:col-span-2">
-                  <label className="text-xs text-slate-400">Name *</label>
-                  <Input value={c.name} onChange={(e) => updateCriterion(c.id, "name", e.target.value)}
-                    placeholder="Innovation" required
-                    className="border-slate-600 bg-slate-700/50 text-white placeholder:text-slate-500 text-sm" />
+                <div className="sm:col-span-2">
+                  <label className="gh-label">Name *</label>
+                  <Input value={c.name} onChange={(e) => updateCriterion(c.id, "name", e.target.value)} placeholder="Innovation" required />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <label className="text-xs text-slate-400">Weight %</label>
-                    <Input type="number" min={1} max={100}
-                      value={c.weight}
-                      onChange={(e) => updateCriterion(c.id, "weight", Number(e.target.value))}
-                      className="border-slate-600 bg-slate-700/50 text-white text-sm" />
+                  <div>
+                    <label className="gh-label">Weight %</label>
+                    <Input type="number" min={1} max={100} value={c.weight} onChange={(e) => updateCriterion(c.id, "weight", Number(e.target.value))} />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-slate-400">Max Score</label>
-                    <Input type="number" min={1} max={100}
-                      value={c.maxScore}
-                      onChange={(e) => updateCriterion(c.id, "maxScore", Number(e.target.value))}
-                      className="border-slate-600 bg-slate-700/50 text-white text-sm" />
+                  <div>
+                    <label className="gh-label">Max Score</label>
+                    <Input type="number" min={1} max={100} value={c.maxScore} onChange={(e) => updateCriterion(c.id, "maxScore", Number(e.target.value))} />
                   </div>
                 </div>
-                <div className="space-y-1 sm:col-span-3">
-                  <label className="text-xs text-slate-400">Description</label>
-                  <Input value={c.description}
-                    onChange={(e) => updateCriterion(c.id, "description", e.target.value)}
-                    placeholder="What should the jury evaluate..."
-                    className="border-slate-600 bg-slate-700/50 text-white placeholder:text-slate-500 text-sm" />
+                <div className="sm:col-span-3">
+                  <label className="gh-label">Description</label>
+                  <Input value={c.description} onChange={(e) => updateCriterion(c.id, "description", e.target.value)} placeholder="What should the jury evaluate..." />
                 </div>
               </div>
             </div>
           ))}
         </div>
-
-        <Button type="button" variant="outline" onClick={addCriterion}
-          className="mt-3 border-dashed border-slate-600 text-slate-400 hover:text-white">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Criterion
+        <Button type="button" variant="outline" onClick={addCriterion} className="mt-3">
+          <Plus className="mr-2 h-4 w-4" /> Add Criterion
         </Button>
       </section>
 
       {/* ── Prizes ── */}
       <section>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">Prizes</h2>
-        </div>
-
-        {prizesError && (
-          <div className="mb-4 rounded-lg border border-red-700/50 bg-red-900/30 p-3">
-            <p className="text-sm text-red-300">{prizesError}</p>
-          </div>
-        )}
-
+        <p className="gh-kicker mb-4">» Prizes</p>
+        {prizesError && <div className="gh-banner-error mb-4">{prizesError}</div>}
         <div className="space-y-3">
           {prizes.map((p, i) => (
-            <div key={p.id} className="rounded-xl border border-slate-700 bg-slate-800 p-4">
+            <div key={p.id} className="p-4" style={{ background: "var(--surface-3)", border: "1px solid var(--border)" }}>
               <div className="mb-3 flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-400">Prize {i + 1}</span>
-                <button type="button" onClick={() => removePrize(p.id)}
-                  className="text-slate-500 hover:text-red-400 transition-colors">
+                <span style={{ fontSize: "11px", fontFamily: "var(--font-mono)", color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Prize {i + 1}</span>
+                <button type="button" onClick={() => removePrize(p.id)} style={{ color: "var(--fg-faint)" }} className="transition-colors hover:text-[var(--danger)]">
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
               <div className="grid gap-3 sm:grid-cols-4">
-                <div className="space-y-1">
-                  <label className="text-xs text-slate-400">Place *</label>
-                  <Input
-                    value={p.place}
-                    onChange={(e) => updatePrize(p.id, "place", e.target.value)}
-                    placeholder="1st"
-                    required
-                    className="border-slate-600 bg-slate-700/50 text-white placeholder:text-slate-500 text-sm"
-                  />
+                <div>
+                  <label className="gh-label">Place *</label>
+                  <Input value={p.place} onChange={(e) => updatePrize(p.id, "place", e.target.value)} placeholder="1st" required />
                 </div>
-                <div className="space-y-1 sm:col-span-2">
-                  <label className="text-xs text-slate-400">Value (EUR) *</label>
+                <div className="sm:col-span-2">
+                  <label className="gh-label">Value (EUR) *</label>
                   <div className="relative">
-                    <Input
-                      value={p.value}
-                      onChange={(e) => updatePrize(p.id, "value", e.target.value)}
-                      placeholder="5000"
-                      required
-                      className="border-slate-600 bg-slate-700/50 text-white placeholder:text-slate-500 text-sm pr-12"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">EUR</span>
+                    <Input value={p.value} onChange={(e) => updatePrize(p.id, "value", e.target.value)} placeholder="5000" required className="pr-12" />
+                    <span style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", fontSize: "12px", color: "var(--fg-3)", fontFamily: "var(--font-mono)" }}>EUR</span>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-slate-400">Type</label>
-                  <select
-                    value={p.type}
-                    onChange={(e) => updatePrize(p.id, "type", e.target.value)}
-                    className="h-10 w-full rounded-md border border-slate-600 bg-slate-700/50 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
+                <div>
+                  <label className="gh-label">Type</label>
+                  <select value={p.type} onChange={(e) => updatePrize(p.id, "type", e.target.value)} className="gh-select">
                     <option value="cash">Cash</option>
                     <option value="voucher">Voucher</option>
                     <option value="product">Product</option>
@@ -351,36 +288,22 @@ export function ChallengeForm({
                     <option value="other">Other</option>
                   </select>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-slate-400"># Teams</label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={p.numTeams}
-                    onChange={(e) => updatePrize(p.id, "numTeams", Number(e.target.value))}
-                    className="border-slate-600 bg-slate-700/50 text-white text-sm"
-                  />
+                <div>
+                  <label className="gh-label"># Teams</label>
+                  <Input type="number" min={1} value={p.numTeams} onChange={(e) => updatePrize(p.id, "numTeams", Number(e.target.value))} />
                 </div>
               </div>
             </div>
           ))}
         </div>
-
-        <Button type="button" variant="outline" onClick={addPrize}
-          className="mt-3 border-dashed border-slate-600 text-slate-400 hover:text-white">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Prize
+        <Button type="button" variant="outline" onClick={addPrize} className="mt-3">
+          <Plus className="mr-2 h-4 w-4" /> Add Prize
         </Button>
       </section>
 
-      <div className="flex gap-3 border-t border-slate-700 pt-4">
-        <Button type="button" onClick={handleSubmitClick} disabled={isPending} className="bg-blue-600 hover:bg-blue-700">
-          {isPending ? "Saving..." : submitLabel}
-        </Button>
-        <Button type="button" variant="outline" className="border-slate-500 bg-slate-800 text-white hover:bg-slate-700 hover:text-white"
-          onClick={() => router.back()}>
-          Cancel
-        </Button>
+      <div className="flex gap-3 pt-4" style={{ borderTop: "1px solid var(--line)" }}>
+        <Button type="button" onClick={handleSubmitClick} disabled={isPending}>{isPending ? "Saving..." : submitLabel}</Button>
+        <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
       </div>
     </form>
   );

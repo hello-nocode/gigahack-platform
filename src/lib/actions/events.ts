@@ -164,6 +164,11 @@ export async function getEventBySlug(slug: string) {
   return event ?? null;
 }
 
+export async function getEventById(id: string) {
+  const [event] = await db.select().from(events).where(eq(events.id, id));
+  return event ?? null;
+}
+
 // Valid status transitions
 const validTransitions: Record<string, string[]> = {
   draft: ["registration_open"],

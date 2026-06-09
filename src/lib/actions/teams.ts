@@ -18,6 +18,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { randomBytes } from "crypto";
 import { z } from "zod";
+import { createNotification, sendNotificationEmail, getOrCreatePreferences } from "@/lib/actions/notifications";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -284,6 +285,23 @@ export async function requestJoinTeam(
     await db.insert(teamJoinRequests).values({ teamId, userId, message });
   }
 
+  // Notify team leader about new join request
+  if (team?.leaderId) {
+    const [requester] = await db
+      .select({ name: users.name, firstName: users.firstName, lastName: users.lastName, email: users.email })
+      .from(users)
+      .where(eq(users.id, userId));
+    const requesterName = requester?.firstName && requester?.lastName
+      ? `${requester.firstName} ${requester.lastName}`
+      : requester?.name ?? requester?.email ?? "Someone";
+    const title = "New join request";
+    const body = `${requesterName} wants to join your team ${team.name}.`;
+    const link = `/events/${(await db.select({ slug: events.slug }).from(events).where(eq(events.id, team.eventId)).then(r => r[0]?.slug))}/teams/${teamId}`;
+    await createNotification({ userId: team.leaderId, eventId: team.eventId, type: "join_request_received", title, body, link });
+    const prefs = await getOrCreatePreferences(team.leaderId);
+    if (prefs?.emailOnJoinRequest) void sendNotificationEmail(team.leaderId, title, body, link);
+  }
+
   revalidatePath(`/events`);
   return { success: true };
 }
@@ -372,6 +390,19 @@ export async function reviewJoinRequest(
         .set({ status: "cancelled", updatedAt: new Date() })
         .where(inArray(teamJoinRequests.id, otherRequests.map((r) => r.id)));
     }
+  }
+
+  // Notify requester about the decision
+  if (team) {
+    const [eventSlug] = await db.select({ slug: events.slug }).from(events).where(eq(events.id, team.eventId));
+    const title = decision === "accepted" ? "Join request accepted" : "Join request rejected";
+    const body = decision === "accepted"
+      ? `Your request to join team "${team.name}" has been accepted. Welcome!`
+      : `Your request to join team "${team.name}" was not accepted.`;
+    const link = decision === "accepted" ? `/events/${eventSlug?.slug}/teams/${req.teamId}` : null;
+    await createNotification({ userId: req.userId, eventId: team.eventId, type: "join_request_reviewed", title, body, link: link ?? undefined });
+    const prefs = await getOrCreatePreferences(req.userId);
+    if (prefs?.emailOnJoinReviewed) void sendNotificationEmail(req.userId, title, body, link);
   }
 
   revalidatePath(`/events`);

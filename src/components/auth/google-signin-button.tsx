@@ -50,7 +50,7 @@ export function GoogleSignInButton({ callbackUrl = "/dashboard" }: { callbackUrl
       type="button"
       onClick={handleClick}
       disabled={loading}
-      className="flex h-10 w-full items-center justify-center gap-2 rounded-md border border-slate-600 bg-white px-8 text-sm font-medium text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
+      className="gh-btn-outline flex h-10 w-full items-center justify-center gap-2 px-8 text-sm font-medium disabled:opacity-40"
     >
       <GoogleIcon />
       {loading ? "Redirecting..." : "Continue with Google"}

@@ -21,19 +21,17 @@ export default async function NewTeamPage({
   if (userTeam) redirect(`/events/${slug}/teams/${userTeam.id}`);
 
   return (
-    <main className="min-h-screen bg-slate-900 p-8 text-white">
-      <div className="mx-auto max-w-xl">
-        <Button asChild variant="ghost" className="mb-6 text-slate-400 hover:text-white">
-          <Link href={`/events/${slug}/teams`}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            All Teams
-          </Link>
+    <main className="gh-page">
+      <div style={{ margin: "0 auto", maxWidth: "32rem" }}>
+        <Button asChild variant="ghost" className="mb-6">
+          <Link href={`/events/${slug}/teams`}><ArrowLeft className="mr-2 h-4 w-4" />All Teams</Link>
         </Button>
-        <h1 className="mb-2 text-3xl font-bold">Create a Team</h1>
-        <p className="mb-8 text-slate-400">
+        <p className="gh-kicker mb-1">» New Team</p>
+        <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "28px", letterSpacing: "-0.02em", marginBottom: "6px" }}>Create a Team</h1>
+        <p style={{ marginBottom: "28px", fontSize: "13px", color: "var(--fg-3)" }}>
           You&apos;ll be the team leader. Share your invite code to add members (max {event.maxTeamSize}).
         </p>
-        <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-8">
+        <div className="gh-card p-8">
           <TeamForm eventId={event.id} eventSlug={slug} />
         </div>
       </div>

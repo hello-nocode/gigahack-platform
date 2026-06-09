@@ -20,34 +20,47 @@ function LoginForm() {
   );
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4">
-      <div className="w-full max-w-md">
-        {/* Logo / brand */}
-        <div className="mb-8 text-center">
-          <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 shadow-lg">
-            <span className="text-2xl font-black text-white">G</span>
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Gigahack</h1>
-          <p className="mt-1 text-sm text-slate-400">Deeptech Hackathon Moldova</p>
+    <div
+      className="flex min-h-screen items-center justify-center px-4"
+      style={{ background: "var(--ink-900)" }}
+    >
+      {/* subtle green radial glow top-right */}
+      <div
+        aria-hidden
+        style={{
+          position: "fixed", top: 0, right: 0, width: "480px", height: "480px",
+          background: "radial-gradient(ellipse at top right, rgba(0,233,5,0.08) 0%, transparent 70%)",
+          pointerEvents: "none",
+        }}
+      />
+
+      <div className="w-full max-w-sm relative">
+        {/* Brand */}
+        <div className="mb-8">
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: "11px", letterSpacing: "0.12em", color: "var(--fg-3)", textTransform: "uppercase", marginBottom: "4px" }}>
+            Deeptech
+          </p>
+          <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "36px", letterSpacing: "-0.02em", color: "var(--fg-1)", lineHeight: 1 }}>
+            GigaHack<span style={{ color: "var(--green)" }} className="gh-cursor" />
+          </h1>
+          <p style={{ marginTop: "8px", fontSize: "14px", color: "var(--fg-3)" }}>
+            Empowering great minds — 25–27 Sep 2026, Tekwill.
+          </p>
         </div>
 
-        <div className="rounded-2xl border border-slate-700 bg-slate-800/60 p-8 shadow-2xl backdrop-blur-sm">
-          <h2 className="mb-1 text-xl font-semibold text-white">Welcome!</h2>
-          <p className="mb-6 text-sm text-slate-400">Sign in to continue</p>
+        {/* Card */}
+        <div style={{ background: "var(--ink-800)", border: "1px solid var(--line-2)", padding: "28px 24px" }}>
+          <p className="gh-kicker mb-5">» Participant access</p>
 
-          {verified && (
-            <div className="mb-6 rounded-lg border border-blue-700/50 bg-blue-900/30 p-4">
-              <p className="text-sm text-blue-300">
-                ✓ Magic link sent! Check your email.
-              </p>
+          {(verified || state?.success) && (
+            <div style={{ marginBottom: "20px", padding: "12px 14px", background: "var(--green-veil)", border: "1px solid var(--green)", fontSize: "13px", color: "var(--green)" }}>
+              ✓ Magic link sent — check your email.
             </div>
           )}
 
-          {state?.success && !verified && (
-            <div className="mb-6 rounded-lg border border-green-700/50 bg-green-900/30 p-4">
-              <p className="text-sm text-green-300">
-                ✓ Magic link sent! Check your email.
-              </p>
+          {state?.error && (
+            <div style={{ marginBottom: "16px", padding: "12px 14px", background: "rgba(255,77,77,0.08)", border: "1px solid var(--danger)", fontSize: "13px", color: "var(--danger)" }}>
+              {state.error}
             </div>
           )}
 
@@ -55,50 +68,41 @@ function LoginForm() {
           <GoogleSignInButton callbackUrl={callbackUrl} />
 
           {/* Divider */}
-          <div className="my-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-slate-700" />
-            <span className="text-xs text-slate-500">or continue with email</span>
-            <div className="h-px flex-1 bg-slate-700" />
+          <div className="my-5 flex items-center gap-3">
+            <div style={{ height: "1px", flex: 1, background: "var(--line)" }} />
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--fg-faint)", letterSpacing: "0.04em" }}>or email</span>
+            <div style={{ height: "1px", flex: 1, background: "var(--line)" }} />
           </div>
 
           {/* Magic link form */}
           <form action={formAction} className="space-y-4">
             <input type="hidden" name="callbackUrl" value={callbackUrl} />
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium text-slate-300">
-                Email address
+            <div>
+              <label
+                htmlFor="email"
+                style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--fg-3)", marginBottom: "6px" }}
+              >
+                Email
               </label>
               <Input
                 id="email"
                 name="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="ana@team.dev"
                 required
                 autoComplete="email"
-                className="border-slate-600 bg-slate-700/50 text-white placeholder:text-slate-500 focus-visible:ring-blue-500"
               />
             </div>
 
-            {state?.error && (
-              <p className="text-sm text-red-400" role="alert">
-                {state.error}
-              </p>
-            )}
-
-            <Button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700"
-              size="lg"
-              disabled={isPending}
-            >
-              {isPending ? "Sending..." : "Send magic link"}
+            <Button type="submit" className="w-full" size="lg" disabled={isPending}>
+              {isPending ? "Sending..." : "Enter GigaHack_ →"}
             </Button>
           </form>
-
-          <p className="mt-6 text-center text-xs text-slate-500">
-            You will receive an email with a sign-in link valid for 24 hours.
-          </p>
         </div>
+
+        <p style={{ marginTop: "16px", textAlign: "center", fontSize: "12px", color: "var(--fg-faint)", fontFamily: "var(--font-mono)" }}>
+          No team yet? You&apos;ll be matched after you enter.
+        </p>
       </div>
     </div>
   );

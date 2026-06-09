@@ -27,68 +27,32 @@ export function PartnerProfileForm({ action, defaultValues, redirectTo }: Partne
 
   return (
     <form action={formAction} className="space-y-5">
-      {state?.error && (
-        <div className="rounded-lg border border-red-700/50 bg-red-900/30 p-4">
-          <p className="text-sm text-red-300">{state.error}</p>
-        </div>
-      )}
+      {state?.error && <div className="gh-banner-error">{state.error}</div>}
 
-      <div className="space-y-1">
-        <label className="text-sm font-medium text-slate-300">Company Name *</label>
-        <Input
-          name="companyName"
-          defaultValue={defaultValues?.companyName ?? ""}
-          required
-          placeholder="Acme Corp"
-          className="border-slate-600 bg-slate-700/50 text-white placeholder:text-slate-500"
-        />
+      <div>
+        <label className="gh-label">Company Name *</label>
+        <Input name="companyName" defaultValue={defaultValues?.companyName ?? ""} required placeholder="Acme Corp" />
       </div>
 
-      <div className="space-y-1">
-        <label className="text-sm font-medium text-slate-300">Website</label>
-        <Input
-          name="website"
-          type="url"
-          defaultValue={defaultValues?.website ?? ""}
-          placeholder="https://example.com"
-          className="border-slate-600 bg-slate-700/50 text-white placeholder:text-slate-500"
-        />
+      <div>
+        <label className="gh-label">Website</label>
+        <Input name="website" type="url" defaultValue={defaultValues?.website ?? ""} placeholder="https://example.com" />
       </div>
 
-      <div className="space-y-1">
-        <label className="text-sm font-medium text-slate-300">Logo URL</label>
-        <Input
-          name="logoUrl"
-          type="url"
-          defaultValue={defaultValues?.logoUrl ?? ""}
-          placeholder="https://example.com/logo.png"
-          className="border-slate-600 bg-slate-700/50 text-white placeholder:text-slate-500"
-        />
+      <div>
+        <label className="gh-label">Logo URL</label>
+        <Input name="logoUrl" type="url" defaultValue={defaultValues?.logoUrl ?? ""} placeholder="https://example.com/logo.png" />
       </div>
 
-      <div className="space-y-1">
-        <label className="text-sm font-medium text-slate-300">Description</label>
-        <textarea
-          name="description"
-          defaultValue={defaultValues?.description ?? ""}
-          rows={4}
-          placeholder="Brief description of your company..."
-          className="w-full rounded-md border border-slate-600 bg-slate-700/50 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+      <div>
+        <label className="gh-label">Description</label>
+        <textarea name="description" defaultValue={defaultValues?.description ?? ""} rows={4}
+          placeholder="Brief description of your company..." className="gh-textarea" />
       </div>
 
       <div className="flex gap-3 pt-2">
-        <Button type="submit" disabled={isPending} className="bg-blue-600 hover:bg-blue-700">
-          {isPending ? "Saving..." : "Save Profile"}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="border-slate-500 bg-slate-800 text-white hover:bg-slate-700 hover:text-white"
-          onClick={() => router.back()}
-        >
-          Cancel
-        </Button>
+        <Button type="submit" disabled={isPending}>{isPending ? "Saving..." : "Save Profile"}</Button>
+        <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
       </div>
     </form>
   );

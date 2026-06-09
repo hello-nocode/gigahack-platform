@@ -27,61 +27,42 @@ export default async function EditTeamPage({
   const nonLeaderMembers = team.members?.filter((m) => m.userId !== team.leaderId) ?? [];
 
   return (
-    <main className="min-h-screen bg-slate-900 p-8 text-white">
-      <div className="mx-auto max-w-xl">
-        <Button asChild variant="ghost" className="mb-6 text-slate-400 hover:text-white">
-          <Link href={`/events/${slug}/teams/${teamId}`}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Team
-          </Link>
+    <main className="gh-page">
+      <div style={{ margin: "0 auto", maxWidth: "32rem" }}>
+        <Button asChild variant="ghost" className="mb-6">
+          <Link href={`/events/${slug}/teams/${teamId}`}><ArrowLeft className="mr-2 h-4 w-4" />Back to Team</Link>
         </Button>
-        <h1 className="mb-8 text-3xl font-bold">Edit Team</h1>
-        <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-8">
-          <TeamForm
-            eventId={event.id}
-            eventSlug={slug}
-            defaultValues={team}
-            memberCount={team.members?.length ?? 0}
-            minTeamSize={event.minTeamSize}
-            maxTeamSize={event.maxTeamSize}
-          />
+        <p className="gh-kicker mb-1">» Edit Team</p>
+        <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "28px", letterSpacing: "-0.02em", marginBottom: "24px" }}>Edit Team</h1>
+        <div className="gh-card p-8">
+          <TeamForm eventId={event.id} eventSlug={slug} defaultValues={team} memberCount={team.members?.length ?? 0} minTeamSize={event.minTeamSize} maxTeamSize={event.maxTeamSize} />
         </div>
 
-        {/* Transfer Leadership Section */}
         {isLeader && nonLeaderMembers.length > 0 && (
-          <div className="mt-6 rounded-2xl border border-yellow-700/30 bg-yellow-900/10 p-6">
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-yellow-200">
-              <Crown className="h-5 w-5" /> Transfer Leadership
-            </h2>
-            <p className="mb-4 text-sm text-slate-400">
-              Choose a new team leader. You will become a regular member.
+          <div className="mt-6 p-6" style={{ background: "rgba(232,229,83,0.06)", border: "1px solid var(--warn)" }}>
+            <p className="gh-kicker mb-2" style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--warn)" }}>
+              <Crown style={{ width: 13, height: 13 }} /> Transfer Leadership
             </p>
+            <p style={{ marginBottom: "14px", fontSize: "13px", color: "var(--fg-3)" }}>Choose a new team leader. You will become a regular member.</p>
             <div className="space-y-2">
               {nonLeaderMembers.map((m) => {
                 const avatar = m.avatarUrl ?? m.image;
                 return (
-                  <div
-                    key={m.userId}
-                    className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800 px-4 py-3"
-                  >
+                  <div key={m.userId} className="flex items-center justify-between px-4 py-3" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
                     <div className="flex items-center gap-3">
                       {avatar ? (
-                        <img src={avatar} alt="" className="h-8 w-8 rounded-full object-cover" />
+                        <img src={avatar} alt="" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover" }} />
                       ) : (
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 text-xs font-semibold text-slate-300">
+                        <div style={{ width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--ink-650)", fontSize: "12px", fontWeight: 600 }}>
                           {(m.name ?? m.email ?? "?")[0]?.toUpperCase()}
                         </div>
                       )}
                       <div>
-                        <p className="text-sm font-medium">{m.name ?? m.email}</p>
-                        <p className="text-xs text-slate-500">{m.email}</p>
+                        <p style={{ fontSize: "14px", fontWeight: 500 }}>{m.name ?? m.email}</p>
+                        <p style={{ fontSize: "12px", color: "var(--fg-3)", fontFamily: "var(--font-mono)" }}>{m.email}</p>
                       </div>
                     </div>
-                    <TransferLeaderButton
-                      teamId={teamId}
-                      memberId={m.userId}
-                      memberName={m.name ?? m.email ?? "this member"}
-                    />
+                    <TransferLeaderButton teamId={teamId} memberId={m.userId} memberName={m.name ?? m.email ?? "this member"} />
                   </div>
                 );
               })}

@@ -105,138 +105,80 @@ export default async function PartnerProfilePage({
   }
 
   return (
-    <main className="min-h-screen bg-slate-900 p-8 text-white">
-      <div className="mx-auto max-w-3xl">
+    <main className="gh-page">
+      <div style={{ margin: "0 auto", maxWidth: "48rem" }}>
         <div className="mb-6 flex items-center justify-between">
-          <Button asChild variant="ghost" className="text-slate-400 hover:text-white">
-            <Link href={`/events/${slug}/partners`}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              All Partners
-            </Link>
+          <Button asChild variant="ghost">
+            <Link href={`/events/${slug}/partners`}><ArrowLeft className="mr-2 h-4 w-4" />All Partners</Link>
           </Button>
           {(isOwner || admin) && (
-            <Button asChild variant="outline" className="border-slate-500 bg-slate-800 text-white hover:bg-slate-700 hover:text-white">
-              <Link href={`/events/${slug}/partners/${partnerId}/edit`}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Edit Profile
-              </Link>
+            <Button asChild variant="outline">
+              <Link href={`/events/${slug}/partners/${partnerId}/edit`}><Pencil className="mr-2 h-4 w-4" />Edit Profile</Link>
             </Button>
           )}
         </div>
 
-        <div className="mb-8 rounded-2xl border border-slate-700 bg-slate-800/50 p-8">
+        <div className="mb-6 gh-card p-8">
           <div className="flex items-start gap-6">
             {partner.logoUrl ? (
-              <img
-                src={partner.logoUrl}
-                alt={partner.companyName}
-                className="h-20 w-20 rounded-xl object-contain"
-              />
+              <img src={partner.logoUrl} alt={partner.companyName} style={{ width: 72, height: 72, objectFit: "contain", flexShrink: 0, border: "1px solid var(--border)" }} />
             ) : (
-              <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-slate-700">
-                <Building2 className="h-10 w-10 text-slate-400" />
+              <div style={{ width: 72, height: 72, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--ink-650)", border: "1px solid var(--border)" }}>
+                <Building2 style={{ width: 32, height: 32, color: "var(--fg-faint)" }} />
               </div>
             )}
             <div>
-              <h1 className="text-3xl font-bold">{partner.companyName}</h1>
+              <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "26px", letterSpacing: "-0.02em" }}>{partner.companyName}</h1>
               {partner.website && (
-                <a
-                  href={partner.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-1 flex items-center gap-1 text-sm text-blue-400 hover:underline"
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  {partner.website.replace(/^https?:\/\//, "")}
+                <a href={partner.website} target="_blank" rel="noopener noreferrer"
+                  style={{ marginTop: "6px", display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "var(--green)", fontFamily: "var(--font-mono)" }}
+                  className="hover:underline">
+                  <ExternalLink style={{ width: 10, height: 10 }} />{partner.website.replace(/^https?:\/\//, "")}
                 </a>
               )}
             </div>
           </div>
-          {partner.description && (
-            <p className="mt-6 text-slate-300">{partner.description}</p>
-          )}
+          {partner.description && <p style={{ marginTop: "20px", fontSize: "14px", color: "var(--fg-2)", lineHeight: 1.6 }}>{partner.description}</p>}
         </div>
 
-        <h2 className="mb-4 text-xl font-semibold">Challenges</h2>
+        <p className="gh-kicker mb-4">» Challenges</p>
         {visibleChallenges.length === 0 ? (
-          <p className="text-slate-500">No challenges yet.</p>
+          <p style={{ fontSize: "13px", color: "var(--fg-faint)" }}>No challenges yet.</p>
         ) : isParticipant ? (
-          // Participant view - rich challenge cards with Apply buttons
-          <div className="space-y-6">
+          <div className="space-y-4">
             {enrichedChallenges.map((c) => {
               const isFull = c.challenge.maxTeams !== null && c.acceptedCount >= c.challenge.maxTeams;
               const alreadyApplied = !!c.teamStatus;
               const atApplicationLimit = teamActiveApplications >= event.maxChallengeApplications;
-
               let buttonDisabled = false;
               let buttonReason = "";
-
-              if (!userTeamId) {
-                buttonDisabled = true;
-                buttonReason = "Join a team first";
-              } else if (alreadyApplied) {
-                buttonDisabled = true;
-                buttonReason = c.teamStatus?.status === "accepted" ? "Accepted" : "Pending";
-              } else if (atApplicationLimit) {
-                buttonDisabled = true;
-                buttonReason = "Max applications reached";
-              }
-
+              if (!userTeamId) { buttonDisabled = true; buttonReason = "Join a team first"; }
+              else if (alreadyApplied) { buttonDisabled = true; buttonReason = c.teamStatus?.status === "accepted" ? "Accepted" : "Pending"; }
+              else if (atApplicationLimit) { buttonDisabled = true; buttonReason = "Max applications reached"; }
               return (
-                <div
-                  key={c.challenge.id}
-                  className="rounded-xl border border-slate-700 bg-slate-800/50 p-6"
-                >
-                  {/* Title and description */}
-                  <Link
-                    href={`/events/${slug}/challenges/${c.challenge.slug}`}
-                    className="group block"
-                  >
-                    <h3 className="text-xl font-semibold group-hover:text-blue-400 transition-colors">
-                      {c.challenge.title}
-                    </h3>
-                    {c.challenge.description && (
-                      <p className="mt-2 line-clamp-2 text-sm text-slate-400">
-                        {c.challenge.description}
-                      </p>
-                    )}
+                <div key={c.challenge.id} className="gh-card p-6">
+                  <Link href={`/events/${slug}/challenges/${c.challenge.slug}`} className="group block">
+                    <h3 style={{ fontSize: "18px", fontWeight: 600, fontFamily: "var(--font-display)" }} className="group-hover:underline">{c.challenge.title}</h3>
+                    {c.challenge.description && <p style={{ marginTop: "6px", fontSize: "13px", color: "var(--fg-3)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{c.challenge.description}</p>}
                   </Link>
-
-                  {/* Prizes */}
                   {c.prizes.length > 0 && (
                     <div className="mt-4 flex items-center gap-2">
-                      <Trophy className="h-4 w-4 text-yellow-400" />
-                      <span className="text-sm text-slate-300">
-                        {c.prizes.map((p) => `${p.place}: ${p.value} EUR`).join(", ")}
-                      </span>
+                      <Trophy style={{ width: 14, height: 14, color: "var(--warn)", flexShrink: 0 }} />
+                      <span style={{ fontSize: "13px", color: "var(--fg-2)", fontFamily: "var(--font-mono)" }}>{c.prizes.map((p) => `${p.place}: ${p.value} EUR`).join(", ")}</span>
                     </div>
                   )}
-
-                  {/* Footer with Apply button */}
                   <div className="mt-4 flex items-center justify-between">
-                    <div className="text-xs text-slate-500">
-                      {c.challenge.maxTeams && (
-                        <span>{c.acceptedCount} / {c.challenge.maxTeams} teams</span>
-                      )}
+                    <div style={{ fontSize: "11px", color: "var(--fg-faint)", fontFamily: "var(--font-mono)" }}>
+                      {c.challenge.maxTeams && <span>{c.acceptedCount} / {c.challenge.maxTeams} teams</span>}
                     </div>
                     {userTeamId && !alreadyApplied ? (
-                      <ApplyButton
-                        teamId={userTeamId}
-                        challengeId={c.challenge.id}
-                        disabled={buttonDisabled}
-                        disabledReason={buttonReason}
-                        isFull={isFull}
-                      />
+                      <ApplyButton teamId={userTeamId} challengeId={c.challenge.id} disabled={buttonDisabled} disabledReason={buttonReason} isFull={isFull} />
                     ) : userTeamId && alreadyApplied ? (
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        c.teamStatus?.status === "accepted"
-                          ? "bg-green-900/60 text-green-300"
-                          : "bg-yellow-900/60 text-yellow-300"
-                      }`}>
+                      <span style={{ padding: "2px 8px", fontSize: "11px", fontFamily: "var(--font-mono)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em", background: c.teamStatus?.status === "accepted" ? "var(--green-veil)" : "rgba(232,229,83,0.1)", color: c.teamStatus?.status === "accepted" ? "var(--green)" : "var(--warn)" }}>
                         {c.teamStatus?.status === "accepted" ? "Accepted" : "Pending"}
                       </span>
                     ) : (
-                      <span className="text-xs text-slate-500">Join a team to apply</span>
+                      <span style={{ fontSize: "12px", color: "var(--fg-faint)" }}>Join a team to apply</span>
                     )}
                   </div>
                 </div>
@@ -244,31 +186,14 @@ export default async function PartnerProfilePage({
             })}
           </div>
         ) : (
-          // Admin/Owner view - show all challenges with status
-          <div className="space-y-3">
+          <div className="space-y-2">
             {visibleChallenges.map((c) => (
-              <Link
-                key={c.id}
-                href={`/events/${slug}/challenges/${c.slug}`}
-                className="block rounded-xl border border-slate-700 bg-slate-800/50 p-5 transition-colors hover:border-slate-500"
-              >
+              <Link key={c.id} href={`/events/${slug}/challenges/${c.slug}`} className="gh-card-hover block px-5 py-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-medium">{c.title}</h3>
-                  <span className={`rounded-full px-2 py-0.5 text-xs ${
-                    c.status === "published"
-                      ? "bg-green-900/60 text-green-300"
-                      : c.status === "archived"
-                        ? "bg-slate-700 text-slate-400"
-                        : "bg-yellow-900/60 text-yellow-300"
-                  }`}>
-                    {c.status}
-                  </span>
+                  <h3 style={{ fontWeight: 500 }}>{c.title}</h3>
+                  <span style={{ padding: "2px 8px", fontSize: "11px", fontFamily: "var(--font-mono)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em", background: c.status === "published" ? "var(--green-veil)" : c.status === "archived" ? "var(--surface-3)" : "rgba(232,229,83,0.1)", color: c.status === "published" ? "var(--green)" : c.status === "archived" ? "var(--fg-faint)" : "var(--warn)" }}>{c.status}</span>
                 </div>
-                {c.description && (
-                  <p className="mt-1 line-clamp-2 text-sm text-slate-400">
-                    {c.description}
-                  </p>
-                )}
+                {c.description && <p style={{ marginTop: "4px", fontSize: "13px", color: "var(--fg-3)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{c.description}</p>}
               </Link>
             ))}
           </div>
@@ -276,10 +201,8 @@ export default async function PartnerProfilePage({
 
         {(isOwner || admin) && (
           <div className="mt-6">
-            <Button asChild className="bg-blue-600 hover:bg-blue-700">
-              <Link href={`/events/${slug}/challenges/new?partnerId=${partnerId}`}>
-                Add Challenge
-              </Link>
+            <Button asChild>
+              <Link href={`/events/${slug}/challenges/new?partnerId=${partnerId}`}>Add Challenge</Link>
             </Button>
           </div>
         )}
