@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { setPassword, hasPassword } from "@/lib/actions/auth";
+import { setPassword } from "@/lib/actions/auth";
 import type { SetPasswordState } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

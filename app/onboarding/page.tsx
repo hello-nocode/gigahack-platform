@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import type { Route } from "next";
 import { auth } from "@/lib/auth/config";
 import { getProfile } from "@/lib/actions/profile";
 import { isProfileComplete } from "@/lib/profile-utils";
@@ -56,7 +57,7 @@ export default async function OnboardingPage({
 
   // Nothing left to do — send the user to their destination.
   if (profileComplete && !needsTicket) {
-    redirect(finalDestination);
+    redirect(finalDestination as Route);
   }
 
   return (

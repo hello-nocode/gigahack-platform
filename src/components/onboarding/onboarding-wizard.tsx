@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import type { Route } from "next";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { TicketVerification } from "@/components/tickets/ticket-verification";
 import { Button } from "@/components/ui/button";
@@ -47,7 +48,7 @@ export function OnboardingWizard({
 
   function finish() {
     setFinishing(true);
-    router.push(finalDestination);
+    router.push(finalDestination as Route);
     router.refresh();
   }
 

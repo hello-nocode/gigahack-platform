@@ -29,7 +29,6 @@ function LoginForm() {
   );
 
   const state = authMethod === "magic" ? magicState : passwordState;
-  const isPending = authMethod === "magic" ? magicPending : passwordPending;
 
   return (
     <div
