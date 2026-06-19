@@ -2,14 +2,20 @@ import Link from "next/link";
 import type { Route } from "next";
 import { auth } from "@/lib/auth/config";
 import { getEvents, getEventBySlug } from "@/lib/actions/events";
-import { getChallengesForEvent } from "@/lib/actions/challenges";
+import { getChallengesForEvent, getChallengesWithSlotStatus, addSlotsToChallenge, addSlotsToAllChallenges } from "@/lib/actions/challenges";
 import { getPartnersForEvent } from "@/lib/actions/partners";
 import { getTeamsForEvent } from "@/lib/actions/teams";
 import { getRegistrationsForEvent } from "@/lib/actions/registrations";
-import { getTicketStats } from "@/lib/actions/tickets";
+import { getTicketStats, hasUserClaimedTicket } from "@/lib/actions/tickets";
+import { getProfile } from "@/lib/actions/profile";
+import { isProfileComplete } from "@/lib/profile-utils";
+import { getUserTeamInEvent } from "@/lib/actions/teams";
+import { TicketVerification } from "@/components/tickets/ticket-verification";
 import { getMentorsForEvent } from "@/lib/actions/mentors";
 import { getScheduleForEvent, getUpcomingScheduleItems } from "@/lib/actions/schedule";
+import { toggleApplicationsOpen, getApplicationsOpenStatus } from "@/lib/actions/events";
 import { isAdmin } from "@/lib/permissions";
+import { ChallengeSlotsPanel } from "@/components/admin/challenge-slots-panel";
 import { db } from "@db/index";
 import { partnerProfiles } from "@db/schema";
 import { eq } from "drizzle-orm";
@@ -44,7 +50,7 @@ export default async function DashboardPage({
     const selectedSlug = eventSlugParam ?? defaultEvent?.slug ?? "";
     const event = selectedSlug ? await getEventBySlug(selectedSlug) : null;
 
-    const [partners, challenges, teams, registrations, ticketStats, mentors, scheduleItems] = event
+    const [partners, challenges, teams, registrations, ticketStats, mentors, scheduleItems, challengeSlotsData, applicationsOpenStatus] = event
       ? await Promise.all([
           getPartnersForEvent(event.id),
           getChallengesForEvent(event.id),
@@ -53,8 +59,10 @@ export default async function DashboardPage({
           getTicketStats(event.id),
           getMentorsForEvent(event.id),
           getScheduleForEvent(event.id),
+          getChallengesWithSlotStatus(event.id),
+          getApplicationsOpenStatus(event.id),
         ])
-      : [[], [], [], [], { total: 0, claimed: 0, unclaimed: 0 }, [], []];
+      : [[], [], [], [], { total: 0, claimed: 0, unclaimed: 0 }, [], [], null, false];
 
     const approvedRegistrations = registrations.filter((r) => r.status === "approved").length;
 
@@ -133,6 +141,28 @@ export default async function DashboardPage({
                   <StatCard icon={<GraduationCap className="h-4 w-4" />} label="Mentors" value={mentors.length} href={`/events/${event.slug}/mentors`} />
                   <StatCard icon={<CalendarClock className="h-4 w-4" />} label="Schedule" value={scheduleItems.length} href={`/admin/events/${event.id}/schedule`} />
                 </div>
+
+                {/* Challenge Slots Panel */}
+                {challengeSlotsData && !('error' in challengeSlotsData) && (
+                  <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+                    <ChallengeSlotsPanel
+                      initialData={challengeSlotsData}
+                      applicationsOpen={applicationsOpenStatus}
+                      onToggleApplications={async () => {
+                        'use server';
+                        return await toggleApplicationsOpen(event.id);
+                      }}
+                      onAddSlots={async (challengeId, slots) => {
+                        'use server';
+                        return await addSlotsToChallenge(challengeId, slots);
+                      }}
+                      onAddSlotsToAll={async (slots) => {
+                        'use server';
+                        return await addSlotsToAllChallenges(event.id, slots);
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Nav tabs */}
@@ -183,11 +213,31 @@ export default async function DashboardPage({
   }
 
   // ── Non-admin view ────────────────────────────────────────────
-  const activeEventForSchedule = eventList.find((e) =>
+  
+  // 1. Check profile completeness
+  const userProfile = userId ? await getProfile(userId) : null;
+  const profileComplete = userProfile ? isProfileComplete(userProfile) : false;
+  
+  // If profile incomplete, we'll show a banner with link to complete it
+  
+  // 2. Find active event for participant workflow
+  const activeEventForWorkflow = eventList.find((e) =>
     ["registration_open", "applications_open", "in_progress", "judging"].includes(e.status),
   ) ?? eventList[0] ?? null;
-  const upcomingItems = activeEventForSchedule
-    ? await getUpcomingScheduleItems(activeEventForSchedule.id, 3)
+  
+  // 3. Check if user has ticket for active event
+  const hasTicket = activeEventForWorkflow && userId 
+    ? await hasUserClaimedTicket(activeEventForWorkflow.id, userId)
+    : false;
+  
+  // 4. Check if user is in a team for active event
+  const userTeam = activeEventForWorkflow && userId
+    ? await getUserTeamInEvent(activeEventForWorkflow.id)
+    : null;
+  const hasTeam = !!userTeam;
+  
+  const upcomingItems = activeEventForWorkflow
+    ? await getUpcomingScheduleItems(activeEventForWorkflow.id, 3)
     : [];
 
   return (
@@ -218,12 +268,89 @@ export default async function DashboardPage({
           </Link>
         </div>
 
+        {/* Profile incomplete warning */}
+        {!profileComplete && (
+          <div className="mt-6 rounded-lg border-l-4 border-amber-500 bg-amber-950/30 p-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 text-amber-400">⚠️</div>
+              <div>
+                <p className="font-medium text-amber-100">Complete your profile</p>
+                <p className="mt-1 text-sm text-amber-200/70">
+                  Please fill in your profile information to participate in hackathons.
+                </p>
+                <Button asChild className="mt-3" size="sm" variant="outline">
+                  <Link href="/profile">Complete Profile →</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Ticket verification section */}
+        {activeEventForWorkflow && profileComplete && !hasTicket && (
+          <div className="mt-8">
+            <p className="gh-kicker mb-4">» {activeEventForWorkflow.title}</p>
+            <TicketVerification eventId={activeEventForWorkflow.id} />
+          </div>
+        )}
+
+        {/* Team options - create or join */}
+        {activeEventForWorkflow && hasTicket && !hasTeam && (
+          <div className="mt-8 gh-card p-6">
+            <p className="gh-kicker mb-4">» Join a Team</p>
+            <p className="mb-4 text-sm" style={{ color: "var(--fg-2)" }}>
+              You have a valid ticket for <strong>{activeEventForWorkflow.title}</strong>. 
+              Create your own team or join an existing one.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Button asChild>
+                <Link href={`/events/${activeEventForWorkflow.slug}/teams/new`}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Team
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href={`/events/${activeEventForWorkflow.slug}/teams`}>
+                  <Users className="mr-2 h-4 w-4" />
+                  Browse Teams
+                </Link>
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* User's team info */}
+        {userTeam && activeEventForWorkflow && (
+          <div className="mt-8 gh-card p-6">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="gh-kicker">» Your Team</p>
+              <Link 
+                href={`/events/${activeEventForWorkflow.slug}/teams/${userTeam.id}`}
+                style={{ fontSize: "12px", color: "var(--green)" }}
+              >
+                View Team →
+              </Link>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: "var(--surface-3)" }}>
+                <Users className="h-5 w-5" style={{ color: "var(--fg-2)" }} />
+              </div>
+              <div>
+                <p style={{ fontWeight: 600, fontSize: "15px" }}>{userTeam.name}</p>
+                <p style={{ fontSize: "12px", color: "var(--fg-3)", fontFamily: "var(--font-mono)" }}>
+                  Active team
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Upcoming schedule widget */}
-        {upcomingItems.length > 0 && activeEventForSchedule && (
+        {upcomingItems.length > 0 && activeEventForWorkflow && (
           <div className="mt-8">
             <div className="mb-3 flex items-center justify-between">
               <p className="gh-kicker">» Upcoming</p>
-              <Link href={`/events/${activeEventForSchedule.slug}/schedule`}
+              <Link href={`/events/${activeEventForWorkflow.slug}/schedule`}
                 style={{ fontSize: "11px", fontFamily: "var(--font-mono)", color: "var(--green)", letterSpacing: "0.04em" }}
               >
                 View full schedule →

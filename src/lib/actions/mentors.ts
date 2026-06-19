@@ -190,35 +190,31 @@ export async function upsertMentorProfile(
 }
 
 export async function getMentorsForEvent(eventId: string) {
-  const profiles = await db
-    .select()
-    .from(mentorProfiles)
-    .where(eq(mentorProfiles.eventId, eventId));
+  // 3 fixed queries instead of 2 per mentor
+  const [profiles, allSlots, bookedRows] = await Promise.all([
+    db.select().from(mentorProfiles).where(eq(mentorProfiles.eventId, eventId)),
+    db
+      .select({ id: mentorSlots.id, mentorProfileId: mentorSlots.mentorProfileId })
+      .from(mentorSlots)
+      .innerJoin(mentorProfiles, eq(mentorSlots.mentorProfileId, mentorProfiles.id))
+      .where(eq(mentorProfiles.eventId, eventId)),
+    db
+      .select({ slotId: mentorBookings.slotId })
+      .from(mentorBookings)
+      .innerJoin(mentorSlots, eq(mentorBookings.slotId, mentorSlots.id))
+      .innerJoin(mentorProfiles, eq(mentorSlots.mentorProfileId, mentorProfiles.id))
+      .where(and(eq(mentorProfiles.eventId, eventId), isNull(mentorBookings.cancelledAt))),
+  ]);
 
-  const withCounts = await Promise.all(
-    profiles.map(async (p) => {
-      const allSlots = await db
-        .select({ id: mentorSlots.id })
-        .from(mentorSlots)
-        .where(eq(mentorSlots.mentorProfileId, p.id));
+  const bookedSlotIds = new Set(bookedRows.map((b) => b.slotId));
+  const availableByMentor = new Map<string, number>();
+  for (const slot of allSlots) {
+    if (!bookedSlotIds.has(slot.id)) {
+      availableByMentor.set(slot.mentorProfileId, (availableByMentor.get(slot.mentorProfileId) ?? 0) + 1);
+    }
+  }
 
-      const bookedSlotIds = await db
-        .select({ slotId: mentorBookings.slotId })
-        .from(mentorBookings)
-        .innerJoin(mentorSlots, eq(mentorBookings.slotId, mentorSlots.id))
-        .where(
-          and(
-            eq(mentorSlots.mentorProfileId, p.id),
-            isNull(mentorBookings.cancelledAt),
-          ),
-        )
-        .then((r) => new Set(r.map((b) => b.slotId)));
-
-      const availableSlots = allSlots.filter((s) => !bookedSlotIds.has(s.id)).length;
-      return { ...p, availableSlots };
-    }),
-  );
-  return withCounts;
+  return profiles.map((p) => ({ ...p, availableSlots: availableByMentor.get(p.id) ?? 0 }));
 }
 
 export async function getMentorProfile(profileId: string) {

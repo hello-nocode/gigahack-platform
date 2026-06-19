@@ -243,3 +243,41 @@ export async function getValidTransitions(status: string): Promise<string[]> {
 export async function getStatusLabel(status: string): Promise<string> {
   return statusLabels[status] || status;
 }
+
+// ── Admin: Toggle Challenge Applications ──────────────────────────────────────
+
+export type ToggleApplicationsResult =
+  | { success: true; isOpen: boolean; error?: never }
+  | { success?: never; error: string };
+
+export async function toggleApplicationsOpen(eventId: string): Promise<ToggleApplicationsResult> {
+  await requireAdmin();
+
+  const [event] = await db
+    .select({ id: events.id, applicationsOpen: events.applicationsOpen, slug: events.slug })
+    .from(events)
+    .where(eq(events.id, eventId));
+
+  if (!event) return { error: "Event not found" };
+
+  const newState = !event.applicationsOpen;
+
+  await db
+    .update(events)
+    .set({ applicationsOpen: newState, updatedAt: new Date() })
+    .where(eq(events.id, eventId));
+
+  revalidatePath(`/admin/events/${eventId}`);
+  revalidatePath(`/events/${event.slug}`);
+  revalidatePath(`/dashboard`);
+
+  return { success: true, isOpen: newState };
+}
+
+export async function getApplicationsOpenStatus(eventId: string): Promise<boolean> {
+  const [event] = await db
+    .select({ applicationsOpen: events.applicationsOpen })
+    .from(events)
+    .where(eq(events.id, eventId));
+  return event?.applicationsOpen ?? false;
+}

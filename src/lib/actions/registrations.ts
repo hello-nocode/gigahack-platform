@@ -54,7 +54,7 @@ export async function registerForEvent(
   if (!parsed.success) return { error: parsed.error.issues.map((i) => i.message).join(", ") };
 
   // Verify and claim the ticket — auto-approves on success
-  const ticketResult = await verifyAndClaimTicket(eventId, parsed.data.ticketNumber, userId);
+  const ticketResult = await verifyAndClaimTicket(eventId, parsed.data.ticketNumber);
   if (ticketResult.error) return { error: ticketResult.error };
 
   // Grant participant role
@@ -181,6 +181,10 @@ export async function getMyRegistration(eventId: string) {
 }
 
 export async function getRegistrationsForEvent(eventId: string) {
+  const userId = await requireUser();
+  const admin = await isAdmin(userId);
+  if (!admin) return [];
+
   return db
     .select({
       id: eventRegistrations.id,

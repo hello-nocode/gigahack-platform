@@ -53,6 +53,11 @@ export const users = pgTable("users", {
   phone: text("phone"),
   linkedin: text("linkedin"),
   avatarUrl: text("avatar_url"),
+  expertiseDomain: text("expertise_domain"),
+  university: text("university"),
+  jobTitle: text("job_title"),
+  cvUrl: text("cv_url"),
+  password: text("password"), // Hashed password for credentials auth
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
   deletedAt: timestamp("deleted_at", { mode: "date" }),
@@ -106,13 +111,14 @@ export const events = pgTable("events", {
   status: eventStatusEnum("status").notNull().default("draft"),
   partnerApplicationsOpen: boolean("partner_applications_open").notNull().default(false),
   registrationOpen: boolean("registration_open").notNull().default(false),
+  applicationsOpen: boolean("applications_open").notNull().default(false),
   description: text("description"),
   coverImageUrl: text("cover_image_url"),
   location: text("location"),
   customSections: jsonb("custom_sections").$type<{ title: string; body: string }[]>(),
   minTeamSize: integer("min_team_size").notNull().default(2),
   maxTeamSize: integer("max_team_size").notNull().default(5),
-  maxChallengeApplications: integer("max_challenge_applications").notNull().default(2),
+  maxChallengeApplications: integer("max_challenge_applications").notNull().default(1),
   startsAt: timestamp("starts_at", { mode: "date" }),
   endsAt: timestamp("ends_at", { mode: "date" }),
   timezone: text("timezone").notNull().default("Europe/Chisinau"),
@@ -120,6 +126,29 @@ export const events = pgTable("events", {
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
 });
+
+// ── External Tickets (pre-loaded ticket numbers from external platforms) ──
+
+export const externalTickets = pgTable(
+  "external_tickets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ticketNumber: text("ticket_number").notNull().unique(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+    status: text("status").notNull().default("available"), // available, claimed, used
+    claimedAt: timestamp("claimed_at", { mode: "date" }),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("external_tickets_event_idx").on(table.eventId),
+    index("external_tickets_user_idx").on(table.userId),
+    index("external_tickets_status_idx").on(table.status),
+  ],
+);
 
 export const eventRoles = pgTable(
   "event_roles",
@@ -680,3 +709,5 @@ export type NotificationPreferences = typeof notificationPreferences.$inferSelec
 export type ScheduledBroadcast = typeof scheduledBroadcasts.$inferSelect;
 export type EventScheduleItem = typeof eventScheduleItems.$inferSelect;
 export type NewEventScheduleItem = typeof eventScheduleItems.$inferInsert;
+export type ExternalTicket = typeof externalTickets.$inferSelect;
+export type NewExternalTicket = typeof externalTickets.$inferInsert;

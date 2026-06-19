@@ -4,7 +4,7 @@ import { db } from "@db/index";
 import { challenges, judgingCriteria, partnerProfiles, challengePrizes, teamChallengeApplications } from "@db/schema";
 import { auth } from "@/lib/auth/config";
 import { isAdmin } from "@/lib/permissions";
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, count, sql, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -30,6 +30,21 @@ async function requirePartnerOrAdmin(eventId: string) {
 
   if (!profile) redirect("/dashboard");
   return { userId: session.user.id, admin: false, profile };
+}
+
+async function requireAdmin(): Promise<boolean> {
+  const session = await auth();
+  if (!session?.user?.id) return false;
+  return isAdmin(session.user.id);
+}
+
+function parsePrizes(raw: string | undefined): { ok: true; value: unknown } | { ok: false } {
+  if (!raw) return { ok: true, value: null };
+  try {
+    return { ok: true, value: JSON.parse(raw) };
+  } catch {
+    return { ok: false };
+  }
 }
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
@@ -83,11 +98,10 @@ export async function createChallenge(
     partnerId = adminProfile;
   }
 
-  try {
-    const prizes = parsed.data.prizes
-      ? JSON.parse(parsed.data.prizes)
-      : null;
+  const prizesResult = parsePrizes(parsed.data.prizes);
+  if (!prizesResult.ok) return { error: "Invalid prizes format" };
 
+  try {
     const [created] = await db
       .insert(challenges)
       .values({
@@ -101,7 +115,7 @@ export async function createChallenge(
         expectedSolution: parsed.data.expectedSolution ?? null,
         techRequirements: parsed.data.techRequirements ?? null,
         maxTeams: parsed.data.maxTeams ?? null,
-        prizes,
+        prizes: prizesResult.value,
       })
       .returning();
 
@@ -168,11 +182,12 @@ export async function updateChallenge(
     }
   }
 
-  const prizes = parsed.data.prizes ? JSON.parse(parsed.data.prizes) : null;
+  const prizesResult = parsePrizes(parsed.data.prizes);
+  if (!prizesResult.ok) return { error: "Invalid prizes format" };
 
   await db
     .update(challenges)
-    .set({ ...parsed.data, prizes, updatedAt: new Date() })
+    .set({ ...parsed.data, prizes: prizesResult.value, updatedAt: new Date() })
     .where(eq(challenges.id, challengeId));
 
   revalidatePath(`/events`);
@@ -342,4 +357,142 @@ export async function getCriteriaForChallenge(challengeId: string) {
     .from(judgingCriteria)
     .where(eq(judgingCriteria.challengeId, challengeId))
     .orderBy(judgingCriteria.sortOrder);
+}
+
+// ── Admin: Slot Management ───────────────────────────────────────────────────
+
+export type SlotManagementResult =
+  | { success: true; newMaxTeams: number; error?: never }
+  | { success?: never; error: string };
+
+export async function getChallengesWithSlotStatus(eventId: string) {
+  const admin = await requireAdmin();
+  if (!admin) return { error: "Not authorised" };
+
+  const challengesList = await db
+    .select({
+      id: challenges.id,
+      title: challenges.title,
+      slug: challenges.slug,
+      maxTeams: challenges.maxTeams,
+      status: challenges.status,
+    })
+    .from(challenges)
+    .where(eq(challenges.eventId, eventId))
+    .orderBy(challenges.createdAt);
+
+  // Single grouped query instead of one count query per challenge
+  const acceptedCounts =
+    challengesList.length > 0
+      ? await db
+          .select({
+            challengeId: teamChallengeApplications.challengeId,
+            c: count(),
+          })
+          .from(teamChallengeApplications)
+          .where(
+            and(
+              inArray(
+                teamChallengeApplications.challengeId,
+                challengesList.map((c) => c.id),
+              ),
+              eq(teamChallengeApplications.status, "accepted"),
+            ),
+          )
+          .groupBy(teamChallengeApplications.challengeId)
+      : [];
+  const countByChallenge = new Map(acceptedCounts.map((r) => [r.challengeId, r.c]));
+
+  const challengesWithSlots = challengesList.map((challenge) => {
+    const acceptedCount = countByChallenge.get(challenge.id) ?? 0;
+    const maxSlots = challenge.maxTeams ?? 5;
+      const availableSlots = Math.max(0, maxSlots - acceptedCount);
+      const fillPercentage = maxSlots > 0 ? (acceptedCount / maxSlots) * 100 : 0;
+
+      return {
+        ...challenge,
+        maxSlots,
+        acceptedCount,
+        availableSlots,
+        fillPercentage,
+        isFull: acceptedCount >= maxSlots,
+        isNearlyFull: fillPercentage >= 80,
+      };
+  });
+
+  // Calculate totals
+  const totalSlots = challengesWithSlots.reduce((sum, c) => sum + c.maxSlots, 0);
+  const totalAccepted = challengesWithSlots.reduce((sum, c) => sum + c.acceptedCount, 0);
+  const totalAvailable = challengesWithSlots.reduce((sum, c) => sum + c.availableSlots, 0);
+
+  return {
+    challenges: challengesWithSlots,
+    summary: {
+      totalSlots,
+      totalAccepted,
+      totalAvailable,
+      allFull: totalAvailable === 0,
+      nearlyFull: challengesWithSlots.some(c => c.isNearlyFull && !c.isFull),
+    },
+  };
+}
+
+export async function addSlotsToChallenge(
+  challengeId: string,
+  additionalSlots: number,
+): Promise<SlotManagementResult> {
+  const admin = await requireAdmin();
+  if (!admin) return { error: "Not authorised" };
+
+  if (additionalSlots < 1 || additionalSlots > 100) {
+    return { error: "Invalid slot count (1-100)" };
+  }
+
+  const [challenge] = await db
+    .select({ maxTeams: challenges.maxTeams, eventId: challenges.eventId })
+    .from(challenges)
+    .where(eq(challenges.id, challengeId));
+
+  if (!challenge) return { error: "Challenge not found" };
+
+  const currentMax = challenge.maxTeams ?? 5;
+  const newMaxTeams = currentMax + additionalSlots;
+
+  await db
+    .update(challenges)
+    .set({ maxTeams: newMaxTeams, updatedAt: new Date() })
+    .where(eq(challenges.id, challengeId));
+
+  revalidatePath(`/admin/events/${challenge.eventId}/challenges`);
+  return { success: true, newMaxTeams };
+}
+
+export async function addSlotsToAllChallenges(
+  eventId: string,
+  additionalSlots: number,
+): Promise<{ success: true; updated: number; error?: never } | { success?: never; error: string }> {
+  const admin = await requireAdmin();
+  if (!admin) return { error: "Not authorised" };
+
+  if (additionalSlots < 1 || additionalSlots > 100) {
+    return { error: "Invalid slot count (1-100)" };
+  }
+
+  // Single batch update instead of one query per challenge
+  const updatedRows = await db
+    .update(challenges)
+    .set({
+      maxTeams: sql`coalesce(${challenges.maxTeams}, 5) + ${additionalSlots}`,
+      updatedAt: new Date(),
+    })
+    .where(eq(challenges.eventId, eventId))
+    .returning({ id: challenges.id });
+
+  const updated = updatedRows.length;
+  if (updated === 0) {
+    return { error: "No challenges found for this event" };
+  }
+
+  revalidatePath(`/admin/events/${eventId}/challenges`);
+  return { success: true, updated };
 }

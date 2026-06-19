@@ -1,23 +1,35 @@
 "use client";
 
-import { useActionState, Suspense } from "react";
-import { signInWithEmail } from "@/lib/actions/auth";
-import type { SignInEmailState } from "@/lib/actions/auth";
+import { useActionState, Suspense, useState } from "react";
+import Link from "next/link";
+import { signInWithEmail, signInWithPassword } from "@/lib/actions/auth";
+import type { SignInEmailState, SignInPasswordState } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSearchParams } from "next/navigation";
 import { GoogleSignInButton } from "@/components/auth/google-signin-button";
 
 
+type AuthMethod = "magic" | "password";
+
 function LoginForm() {
   const searchParams = useSearchParams();
   const verified = searchParams.get("verify") === "1";
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
+  const [authMethod, setAuthMethod] = useState<AuthMethod>("magic");
 
-  const [state, formAction, isPending] = useActionState<SignInEmailState, FormData>(
+  const [magicState, magicAction, magicPending] = useActionState<SignInEmailState, FormData>(
     signInWithEmail,
     null as unknown as SignInEmailState,
   );
+
+  const [passwordState, passwordAction, passwordPending] = useActionState<SignInPasswordState, FormData>(
+    signInWithPassword,
+    null as unknown as SignInPasswordState,
+  );
+
+  const state = authMethod === "magic" ? magicState : passwordState;
+  const isPending = authMethod === "magic" ? magicPending : passwordPending;
 
   return (
     <div
@@ -67,41 +79,123 @@ function LoginForm() {
           {/* Google OAuth */}
           <GoogleSignInButton callbackUrl={callbackUrl} />
 
-          {/* Divider */}
-          <div className="my-5 flex items-center gap-3">
-            <div style={{ height: "1px", flex: 1, background: "var(--line)" }} />
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--fg-faint)", letterSpacing: "0.04em" }}>or email</span>
-            <div style={{ height: "1px", flex: 1, background: "var(--line)" }} />
+          {/* Auth method tabs */}
+          <div className="mb-5 flex items-center gap-1" style={{ background: "var(--ink-900)", padding: "4px", borderRadius: "6px" }}>
+            <button
+              type="button"
+              onClick={() => setAuthMethod("magic")}
+              className="flex-1 py-2 px-3 text-center text-xs transition-colors"
+              style={{
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "0.04em",
+                background: authMethod === "magic" ? "var(--ink-800)" : "transparent",
+                color: authMethod === "magic" ? "var(--fg-1)" : "var(--fg-3)",
+                border: authMethod === "magic" ? "1px solid var(--line-2)" : "1px solid transparent",
+                borderRadius: "4px",
+              }}
+            >
+              Magic Link
+            </button>
+            <button
+              type="button"
+              onClick={() => setAuthMethod("password")}
+              className="flex-1 py-2 px-3 text-center text-xs transition-colors"
+              style={{
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "0.04em",
+                background: authMethod === "password" ? "var(--ink-800)" : "transparent",
+                color: authMethod === "password" ? "var(--fg-1)" : "var(--fg-3)",
+                border: authMethod === "password" ? "1px solid var(--line-2)" : "1px solid transparent",
+                borderRadius: "4px",
+              }}
+            >
+              Password
+            </button>
           </div>
 
           {/* Magic link form */}
-          <form action={formAction} className="space-y-4">
-            <input type="hidden" name="callbackUrl" value={callbackUrl} />
-            <div>
-              <label
-                htmlFor="email"
-                style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--fg-3)", marginBottom: "6px" }}
-              >
-                Email
-              </label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="ana@team.dev"
-                required
-                autoComplete="email"
-              />
-            </div>
+          {authMethod === "magic" && (
+            <form action={magicAction} className="space-y-4">
+              <input type="hidden" name="callbackUrl" value={callbackUrl} />
+              <div>
+                <label
+                  htmlFor="magic-email"
+                  style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--fg-3)", marginBottom: "6px" }}
+                >
+                  Email
+                </label>
+                <Input
+                  id="magic-email"
+                  name="email"
+                  type="email"
+                  placeholder="ana@team.dev"
+                  required
+                  autoComplete="email"
+                />
+              </div>
 
-            <Button type="submit" className="w-full" size="lg" disabled={isPending}>
-              {isPending ? "Sending..." : "Enter GigaHack_ →"}
-            </Button>
-          </form>
+              <Button type="submit" className="w-full" size="lg" disabled={magicPending}>
+                {magicPending ? "Sending..." : "Send Magic Link →"}
+              </Button>
+              <p className="text-center text-xs" style={{ color: "var(--fg-faint)", fontFamily: "var(--font-mono)" }}>
+                We&apos;ll email you a login link
+              </p>
+            </form>
+          )}
+
+          {/* Password form */}
+          {authMethod === "password" && (
+            <form action={passwordAction} className="space-y-4">
+              <input type="hidden" name="callbackUrl" value={callbackUrl} />
+              <div>
+                <label
+                  htmlFor="password-email"
+                  style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--fg-3)", marginBottom: "6px" }}
+                >
+                  Email
+                </label>
+                <Input
+                  id="password-email"
+                  name="email"
+                  type="email"
+                  placeholder="ana@team.dev"
+                  required
+                  autoComplete="email"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="password"
+                  style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--fg-3)", marginBottom: "6px" }}
+                >
+                  Password
+                </label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                  minLength={8}
+                  autoComplete="current-password"
+                />
+              </div>
+
+              <Button type="submit" className="w-full" size="lg" disabled={passwordPending}>
+                {passwordPending ? "Signing in..." : "Sign In →"}
+              </Button>
+              <p className="text-center text-xs" style={{ color: "var(--fg-faint)", fontFamily: "var(--font-mono)" }}>
+                Use the password you set in your profile
+              </p>
+            </form>
+          )}
         </div>
 
-        <p style={{ marginTop: "16px", textAlign: "center", fontSize: "12px", color: "var(--fg-faint)", fontFamily: "var(--font-mono)" }}>
-          No team yet? You&apos;ll be matched after you enter.
+        <p style={{ marginTop: "16px", textAlign: "center", fontSize: "13px", color: "var(--fg-3)", fontFamily: "var(--font-mono)" }}>
+          Don&apos;t have an account?{" "}
+          <Link href={{ pathname: "/signup", query: { callbackUrl } }} style={{ color: "var(--green)" }}>
+            Create one
+          </Link>
         </p>
       </div>
     </div>

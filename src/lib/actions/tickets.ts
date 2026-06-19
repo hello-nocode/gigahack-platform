@@ -104,8 +104,11 @@ export type TicketClaimResult =
 export async function verifyAndClaimTicket(
   eventId: string,
   ticketNumber: string,
-  userId: string,
 ): Promise<TicketClaimResult> {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+  const userId = session.user.id;
+
   const trimmed = ticketNumber.trim();
   if (!trimmed) return { error: "Ticket number is required" };
 
@@ -125,7 +128,19 @@ export async function verifyAndClaimTicket(
     .set({ claimedBy: userId, claimedAt: new Date() })
     .where(eq(eventTickets.id, ticket.id));
 
+  revalidatePath("/dashboard");
   return { success: true };
+}
+
+// ── Check if user has claimed a ticket for an event ──────────────────────────
+
+export async function hasUserClaimedTicket(eventId: string, userId: string): Promise<boolean> {
+  const [ticket] = await db
+    .select({ id: eventTickets.id })
+    .from(eventTickets)
+    .where(and(eq(eventTickets.eventId, eventId), eq(eventTickets.claimedBy, userId)))
+    .limit(1);
+  return !!ticket;
 }
 
 // ── Ticket stats for an event ────────────────────────────────────────────────
@@ -149,6 +164,9 @@ export async function getTicketStats(eventId: string) {
 // ── Full ticket list for admin ───────────────────────────────────────────────
 
 export async function getTicketList(eventId: string) {
+  const adminId = await requireAdmin();
+  if (!adminId) return [];
+
   return db
     .select({
       id: eventTickets.id,

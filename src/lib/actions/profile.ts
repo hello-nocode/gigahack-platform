@@ -9,21 +9,28 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 const profileSchema = z.object({
-  firstName: z.string().max(60).optional().or(z.literal("")),
-  lastName: z.string().max(60).optional().or(z.literal("")),
+  firstName: z.string().min(1, "First name is required").max(60),
+  lastName: z.string().min(1, "Last name is required").max(60),
   gender: z.enum(["male", "female", "other", "prefer_not_to_say"]).optional().or(z.literal("")),
   phone: z
     .string()
+    .min(1, "Phone is required")
     .max(30)
-    .regex(/^[+\d\s\-()]*$/, "Invalid phone number")
-    .optional()
-    .or(z.literal("")),
+    .regex(/^[+\d\s\-()]*$/, "Invalid phone number"),
   linkedin: z
     .string()
     .url("Must be a valid URL")
     .optional()
     .or(z.literal("")),
   avatarUrl: z
+    .string()
+    .url("Must be a valid URL")
+    .optional()
+    .or(z.literal("")),
+  expertiseDomain: z.string().min(1, "Domain of expertise is required"),
+  university: z.string().max(100).optional().or(z.literal("")),
+  jobTitle: z.string().max(60).optional().or(z.literal("")),
+  cvUrl: z
     .string()
     .url("Must be a valid URL")
     .optional()
@@ -52,12 +59,16 @@ export async function updateProfile(
   await db
     .update(users)
     .set({
-      firstName: d.firstName || null,
-      lastName: d.lastName || null,
+      firstName: d.firstName,
+      lastName: d.lastName,
       gender: (d.gender as "male" | "female" | "other" | "prefer_not_to_say" | null) || null,
-      phone: d.phone || null,
+      phone: d.phone,
       linkedin: d.linkedin || null,
       avatarUrl: d.avatarUrl || null,
+      expertiseDomain: d.expertiseDomain,
+      university: d.university || null,
+      jobTitle: d.jobTitle || null,
+      cvUrl: d.cvUrl || null,
       updatedAt: new Date(),
     })
     .where(eq(users.id, session.user.id));
@@ -80,6 +91,10 @@ export async function getProfile(userId: string) {
       phone: users.phone,
       linkedin: users.linkedin,
       avatarUrl: users.avatarUrl,
+      expertiseDomain: users.expertiseDomain,
+      university: users.university,
+      jobTitle: users.jobTitle,
+      cvUrl: users.cvUrl,
       createdAt: users.createdAt,
     })
     .from(users)

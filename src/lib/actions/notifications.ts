@@ -212,20 +212,42 @@ export async function createAdminBroadcast(
   if (isImmediate) {
     // Execute directly without Inngest
     const recipientIds = await resolveBroadcastRecipients(broadcast.id);
-    for (const recipientId of recipientIds) {
-      await createNotification({
+
+    if (recipientIds.length > 0) {
+      // Batch insert notifications instead of one INSERT per recipient
+      const rows: NewNotification[] = recipientIds.map((recipientId) => ({
         userId: recipientId,
         eventId: broadcast.eventId ?? undefined,
         type: "admin_broadcast",
         title: broadcast.title,
         body: broadcast.body,
         link: broadcast.link ?? undefined,
-      });
-      const prefs = await getOrCreatePreferences(recipientId);
-      if (prefs?.emailOnAdminBroadcast) {
-        void sendNotificationEmail(recipientId, broadcast.title, broadcast.body, broadcast.link);
+      }));
+      const CHUNK = 500;
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        await db.insert(notifications).values(rows.slice(i, i + CHUNK));
+      }
+
+      // One query for all preferences; users without a row use the default (opted in)
+      const prefRows = await db
+        .select({
+          userId: notificationPreferences.userId,
+          emailOnAdminBroadcast: notificationPreferences.emailOnAdminBroadcast,
+        })
+        .from(notificationPreferences)
+        .where(inArray(notificationPreferences.userId, recipientIds));
+      const optedOut = new Set(
+        prefRows.filter((p) => !p.emailOnAdminBroadcast).map((p) => p.userId),
+      );
+
+      for (const recipientId of recipientIds) {
+        if (optedOut.has(recipientId)) continue;
+        void sendNotificationEmail(recipientId, broadcast.title, broadcast.body, broadcast.link).catch(
+          (err) => console.error(`[broadcast] email failed for ${recipientId}:`, err),
+        );
       }
     }
+
     await db
       .update(scheduledBroadcasts)
       .set({ sentAt: new Date(), recipientCount: recipientIds.length })

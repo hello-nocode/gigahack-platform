@@ -99,6 +99,27 @@
       "when": 1780043376501,
       "tag": "0013_regular_loki",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1781088467255,
+      "tag": "0014_real_goblin_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1781092549767,
+      "tag": "0015_flat_scarlet_spider",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1781814331132,
+      "tag": "0016_demonic_kronos",
+      "breakpoints": true
     }
   ]
 }

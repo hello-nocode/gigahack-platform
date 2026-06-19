@@ -7,13 +7,15 @@ import { db } from "@db/index";
 import { partnerProfiles, eventRoles, events } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { ProfileForm } from "@/components/profile/profile-form";
+import { PasswordSettings } from "@/components/profile/password-settings";
+import { hasPassword } from "@/lib/actions/auth";
 import { Building2, Users, History } from "lucide-react";
 
 export default async function ProfilePage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const [profile, , partnerList, participantRoles] = await Promise.all([
+  const [profile, , partnerList, participantRoles, userHasPassword] = await Promise.all([
     getProfile(session.user.id),
     isAdmin(session.user.id),
     db.select({ id: partnerProfiles.id, companyName: partnerProfiles.companyName, eventId: partnerProfiles.eventId })
@@ -22,6 +24,7 @@ export default async function ProfilePage() {
     db.select({ role: eventRoles.role, eventId: eventRoles.eventId })
       .from(eventRoles)
       .where(eq(eventRoles.userId, session.user.id)),
+    hasPassword(session.user.id),
   ]);
 
   if (!profile) redirect("/dashboard");
@@ -75,6 +78,8 @@ export default async function ProfilePage() {
             }}
           />
         </div>
+
+        <PasswordSettings userId={session.user.id} hasPassword={userHasPassword} />
 
         {partnerList.length > 0 && (
           <div className="mt-6 p-6" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>

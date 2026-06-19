@@ -16,11 +16,18 @@ interface ProfileFormProps {
     phone?: string | null;
     linkedin?: string | null;
     avatarUrl?: string | null;
+    expertiseDomain?: string | null;
+    university?: string | null;
+    jobTitle?: string | null;
+    cvUrl?: string | null;
     email: string;
   };
+  requireAll?: boolean;
+  onSuccess?: () => void;
+  submitLabel?: string;
 }
 
-export function ProfileForm({ defaultValues }: ProfileFormProps) {
+export function ProfileForm({ defaultValues, onSuccess, submitLabel }: ProfileFormProps) {
   const [state, formAction, isPending] = useActionState<ProfileState, FormData>(
     updateProfile,
     null as unknown as ProfileState,
@@ -31,10 +38,11 @@ export function ProfileForm({ defaultValues }: ProfileFormProps) {
   useEffect(() => {
     if (state?.success) {
       setSaved(true);
+      if (onSuccess) onSuccess();
       const t = setTimeout(() => setSaved(false), 3000);
       return () => clearTimeout(t);
     }
-  }, [state]);
+  }, [state, onSuccess]);
 
   return (
     <form action={formAction} className="space-y-6">
@@ -42,12 +50,12 @@ export function ProfileForm({ defaultValues }: ProfileFormProps) {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="gh-label">First Name</label>
-          <Input name="firstName" defaultValue={defaultValues.firstName ?? ""} maxLength={60} placeholder="Jane" />
+          <label className="gh-label">First Name *</label>
+          <Input name="firstName" defaultValue={defaultValues.firstName ?? ""} maxLength={60} placeholder="Jane" required />
         </div>
         <div>
-          <label className="gh-label">Last Name</label>
-          <Input name="lastName" defaultValue={defaultValues.lastName ?? ""} maxLength={60} placeholder="Doe" />
+          <label className="gh-label">Last Name *</label>
+          <Input name="lastName" defaultValue={defaultValues.lastName ?? ""} maxLength={60} placeholder="Doe" required />
         </div>
       </div>
 
@@ -69,13 +77,46 @@ export function ProfileForm({ defaultValues }: ProfileFormProps) {
       </div>
 
       <div>
-        <label className="gh-label">Phone</label>
-        <Input name="phone" type="tel" defaultValue={defaultValues.phone ?? ""} maxLength={30} placeholder="+373 69 123 456" />
+        <label className="gh-label">Phone *</label>
+        <Input name="phone" type="tel" defaultValue={defaultValues.phone ?? ""} maxLength={30} placeholder="+373 69 123 456" required />
+      </div>
+
+      <div>
+        <label className="gh-label">Domain of Expertise *</label>
+        <select name="expertiseDomain" defaultValue={defaultValues.expertiseDomain ?? ""} className="gh-select" required>
+          <option value="">Select your expertise...</option>
+          <option value="software_development">Software Development</option>
+          <option value="ai_ml">AI / Machine Learning</option>
+          <option value="data_science">Data Science</option>
+          <option value="product_management">Product Management</option>
+          <option value="design_ux">Design / UX</option>
+          <option value="business_marketing">Business / Marketing</option>
+          <option value="hardware_iot">Hardware / IoT</option>
+          <option value="blockchain_web3">Blockchain / Web3</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="gh-label">University / Institution</label>
+          <Input name="university" defaultValue={defaultValues.university ?? ""} maxLength={100} placeholder="e.g. MIT, Stanford" />
+        </div>
+        <div>
+          <label className="gh-label">Job Title</label>
+          <Input name="jobTitle" defaultValue={defaultValues.jobTitle ?? ""} maxLength={60} placeholder="e.g. Software Engineer" />
+        </div>
       </div>
 
       <div>
         <label className="gh-label">LinkedIn URL</label>
         <Input name="linkedin" type="url" defaultValue={defaultValues.linkedin ?? ""} placeholder="https://linkedin.com/in/yourname" />
+      </div>
+
+      <div>
+        <label className="gh-label">CV / Resume</label>
+        <AvatarUpload currentUrl={defaultValues.cvUrl ?? ""} name="cvUrl" onChange={() => {}} />
+        <p style={{ marginTop: "4px", fontSize: "12px", color: "var(--fg-faint)", fontFamily: "var(--font-mono)" }}>PDF or Word document (optional)</p>
       </div>
 
       <div>
@@ -85,7 +126,7 @@ export function ProfileForm({ defaultValues }: ProfileFormProps) {
       </div>
 
       <div className="flex items-center gap-3 pt-4" style={{ borderTop: "1px solid var(--line)" }}>
-        <Button type="submit" disabled={isPending}>{isPending ? "Saving..." : "Save Changes"}</Button>
+        <Button type="submit" disabled={isPending}>{isPending ? "Saving..." : (submitLabel ?? "Save Changes")}</Button>
         {saved && (
           <span style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "13px", color: "var(--green)", fontFamily: "var(--font-mono)" }}>
             <Check className="h-4 w-4" /> Saved

@@ -28,6 +28,12 @@ async function requireUser() {
   return session.user.id;
 }
 
+async function requireAdmin(): Promise<string | null> {
+  const userId = await requireUser();
+  const admin = await isAdmin(userId);
+  return admin ? userId : null;
+}
+
 export async function getUserTeamForEvent(userId: string, eventId: string) {
   const membership = await db
     .select({ teamId: teamMembers.teamId })
@@ -533,6 +539,51 @@ export type ApplicationState =
   | { success: true; error?: never }
   | { success?: never; error: string };
 
+// ── Slot Availability Helpers ────────────────────────────────────────────────
+
+export async function getChallengeSlotInfo(challengeId: string) {
+  const [challenge] = await db
+    .select({ maxTeams: challenges.maxTeams })
+    .from(challenges)
+    .where(eq(challenges.id, challengeId));
+  
+  if (!challenge) return null;
+  
+  const maxSlots = challenge.maxTeams ?? 5; // default 5 slots
+  
+  const acceptedCount = await db
+    .select({ c: count() })
+    .from(teamChallengeApplications)
+    .where(
+      and(
+        eq(teamChallengeApplications.challengeId, challengeId),
+        eq(teamChallengeApplications.status, "accepted"),
+      ),
+    )
+    .then(r => r[0]?.c ?? 0);
+  
+  return {
+    maxSlots,
+    acceptedCount,
+    availableSlots: Math.max(0, maxSlots - acceptedCount),
+    isFull: acceptedCount >= maxSlots,
+  };
+}
+
+export async function getTeamCurrentChallenge(teamId: string): Promise<string | null> {
+  const [app] = await db
+    .select({ challengeId: teamChallengeApplications.challengeId })
+    .from(teamChallengeApplications)
+    .where(
+      and(
+        eq(teamChallengeApplications.teamId, teamId),
+        inArray(teamChallengeApplications.status, ["pending", "accepted"]),
+      ),
+    )
+    .limit(1);
+  return app?.challengeId ?? null;
+}
+
 export async function applyToChallenge(
   teamId: string,
   challengeId: string,
@@ -543,6 +594,25 @@ export async function applyToChallenge(
   const [team] = await db.select().from(teams).where(eq(teams.id, teamId));
   if (!team) return { error: "Team not found" };
   if (team.leaderId !== userId) return { error: "Only the team leader can apply to challenges" };
+
+  // Check if applications are open
+  const [event] = await db
+    .select({ 
+      applicationsOpen: events.applicationsOpen, 
+      minTeamSize: events.minTeamSize, 
+      status: events.status 
+    })
+    .from(events)
+    .where(eq(events.id, team.eventId));
+
+  if (event?.status === "completed") return { error: "This event is completed and can no longer be modified" };
+  if (!event?.applicationsOpen) return { error: "Challenge applications are currently closed" };
+
+  // Check if team already has any active application (single application only)
+  const existingChallenge = await getTeamCurrentChallenge(teamId);
+  if (existingChallenge) {
+    return { error: "Your team already has an active challenge application. Withdraw first to apply to a different challenge." };
+  }
 
   const [existing] = await db
     .select()
@@ -555,13 +625,6 @@ export async function applyToChallenge(
     );
   if (existing) return { error: "Already applied to this challenge" };
 
-  const [event] = await db
-    .select({ maxChallengeApplications: events.maxChallengeApplications, minTeamSize: events.minTeamSize, status: events.status })
-    .from(events)
-    .where(eq(events.id, team.eventId));
-
-  if (event?.status === "completed") return { error: "This event is completed and can no longer be modified" };
-
   const memberCountRows = await db
     .select({ c: count() })
     .from(teamMembers)
@@ -571,7 +634,45 @@ export async function applyToChallenge(
   if (memberCount < minSize)
     return { error: `Team needs at least ${minSize} members to apply to a challenge (currently ${memberCount})` };
 
-  const activeApps = await db
+  // Check slot availability
+  const slotInfo = await getChallengeSlotInfo(challengeId);
+  if (!slotInfo) return { error: "Challenge not found" };
+  if (slotInfo.isFull) return { error: "This challenge has no available slots" };
+
+  // Create application (pending - admin needs to approve)
+  await db.insert(teamChallengeApplications).values({
+    teamId,
+    challengeId,
+    note,
+    status: "pending",
+  });
+
+  revalidatePath(`/events`);
+  return { success: true };
+}
+
+export async function changeChallengeApplication(
+  teamId: string,
+  newChallengeId: string,
+  note?: string,
+): Promise<ApplicationState> {
+  const userId = await requireUser();
+
+  const [team] = await db.select().from(teams).where(eq(teams.id, teamId));
+  if (!team) return { error: "Team not found" };
+  if (team.leaderId !== userId) return { error: "Only the team leader can change challenge applications" };
+
+  // Check if applications are open
+  const [event] = await db
+    .select({ applicationsOpen: events.applicationsOpen, status: events.status })
+    .from(events)
+    .where(eq(events.id, team.eventId));
+
+  if (event?.status === "completed") return { error: "This event is completed and can no longer be modified" };
+  if (!event?.applicationsOpen) return { error: "Challenge applications are closed. Contact an admin to change your challenge." };
+
+  // Get current application
+  const [currentApp] = await db
     .select()
     .from(teamChallengeApplications)
     .where(
@@ -581,18 +682,25 @@ export async function applyToChallenge(
       ),
     );
 
-  const max = event?.maxChallengeApplications ?? 2;
-  if (activeApps.length >= max)
-    return { error: `Max ${max} challenge applications allowed` };
+  if (!currentApp) return { error: "No active challenge application to change" };
+  if (currentApp.challengeId === newChallengeId) return { error: "Already applied to this challenge" };
 
-  // 1st application is auto-accepted; 2nd is pending
-  const autoStatus = activeApps.length === 0 ? "accepted" : "pending";
+  // Check slot availability on new challenge
+  const slotInfo = await getChallengeSlotInfo(newChallengeId);
+  if (!slotInfo) return { error: "Challenge not found" };
+  if (slotInfo.isFull) return { error: "This challenge has no available slots" };
+
+  // Withdraw current and apply to new
+  await db
+    .update(teamChallengeApplications)
+    .set({ status: "withdrawn", updatedAt: new Date() })
+    .where(eq(teamChallengeApplications.id, currentApp.id));
 
   await db.insert(teamChallengeApplications).values({
     teamId,
-    challengeId,
+    challengeId: newChallengeId,
     note,
-    status: autoStatus,
+    status: "pending",
   });
 
   revalidatePath(`/events`);
@@ -625,6 +733,60 @@ export async function withdrawApplication(applicationId: string): Promise<Applic
   return { success: true };
 }
 
+// ── Admin: Move team from one challenge to another ─────────────────────────────
+
+export async function adminMoveTeamChallenge(
+  teamId: string,
+  newChallengeId: string,
+  note?: string,
+): Promise<ApplicationState> {
+  const adminId = await requireAdmin();
+  if (!adminId) return { error: "Not authorised" };
+
+  const [team] = await db.select().from(teams).where(eq(teams.id, teamId));
+  if (!team) return { error: "Team not found" };
+
+  // Get current active application
+  const [currentApp] = await db
+    .select()
+    .from(teamChallengeApplications)
+    .where(
+      and(
+        eq(teamChallengeApplications.teamId, teamId),
+        inArray(teamChallengeApplications.status, ["pending", "accepted"]),
+      ),
+    );
+
+  // Check if target challenge exists and get its slot info
+  const slotInfo = await getChallengeSlotInfo(newChallengeId);
+  if (!slotInfo) return { error: "Target challenge not found" };
+
+  // Admin can override slot limits, but we warn if challenge is full
+  // We'll allow the move even if full (admin discretion)
+
+  if (currentApp) {
+    if (currentApp.challengeId === newChallengeId) {
+      return { error: "Team is already on this challenge" };
+    }
+
+    // Withdraw current application
+    await db
+      .update(teamChallengeApplications)
+      .set({ status: "withdrawn", updatedAt: new Date() })
+      .where(eq(teamChallengeApplications.id, currentApp.id));
+  }
+
+  // Create new application (auto-accepted for admin moves)
+  await db.insert(teamChallengeApplications).values({
+    teamId,
+    challengeId: newChallengeId,
+    note: note || `Moved by admin: ${adminId}`,
+    status: "accepted",
+  });
+
+  revalidatePath(`/events`);
+  return { success: true };
+}
 
 export async function getApplicationsForChallenge(challengeId: string) {
   return db

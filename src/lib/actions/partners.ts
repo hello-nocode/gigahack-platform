@@ -33,6 +33,11 @@ export async function generateInvite(eventId: string) {
 }
 
 export async function getInvitesForEvent(eventId: string) {
+  const session = await auth();
+  if (!session?.user?.id) return [];
+  const admin = await isAdmin(session.user.id);
+  if (!admin) return [];
+
   return db
     .select({
       id: partnerInvites.id,
