@@ -306,12 +306,18 @@ export async function requestPasswordReset(
       console.info(`[password-reset] Reset link for ${email}: ${link}`);
     }
 
-    await sendEmail({
-      to: email,
-      subject: "Reset your GigaHack password",
-      html: passwordResetEmailHtml(link),
-      text: `Reset your GigaHack password using this link (expires in 1 hour): ${link}`,
-    });
+    // Email delivery failures (e.g. provider sandbox limits) must not break the
+    // flow nor leak which emails exist — the token is already stored.
+    try {
+      await sendEmail({
+        to: email,
+        subject: "Reset your GigaHack password",
+        html: passwordResetEmailHtml(link),
+        text: `Reset your GigaHack password using this link (expires in 1 hour): ${link}`,
+      });
+    } catch (err) {
+      console.error("[password-reset] Failed to send reset email:", err);
+    }
   }
 
   return { success: true, message: GENERIC_RESET_MESSAGE };
