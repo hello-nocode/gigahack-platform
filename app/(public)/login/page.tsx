@@ -15,6 +15,7 @@ type AuthMethod = "magic" | "password";
 function LoginForm() {
   const searchParams = useSearchParams();
   const verified = searchParams.get("verify") === "1";
+  const passwordReset = searchParams.get("reset") === "1";
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
   const [authMethod, setAuthMethod] = useState<AuthMethod>("magic");
 
@@ -63,7 +64,13 @@ function LoginForm() {
         <div style={{ background: "var(--ink-800)", border: "1px solid var(--line-2)", padding: "28px 24px" }}>
           <p className="gh-kicker mb-5">» Participant access</p>
 
-          {(verified || state?.success) && (
+          {passwordReset && (
+            <div style={{ marginBottom: "20px", padding: "12px 14px", background: "var(--green-veil)", border: "1px solid var(--green)", fontSize: "13px", color: "var(--green)" }}>
+              ✓ Password reset — sign in with your new password.
+            </div>
+          )}
+
+          {(verified || (authMethod === "magic" && state?.success)) && (
             <div style={{ marginBottom: "20px", padding: "12px 14px", background: "var(--green-veil)", border: "1px solid var(--green)", fontSize: "13px", color: "var(--green)" }}>
               ✓ Magic link sent — check your email.
             </div>
@@ -184,7 +191,9 @@ function LoginForm() {
                 {passwordPending ? "Signing in..." : "Sign In →"}
               </Button>
               <p className="text-center text-xs" style={{ color: "var(--fg-faint)", fontFamily: "var(--font-mono)" }}>
-                Use the password you set in your profile
+                <Link href="/forgot-password" style={{ color: "var(--green)" }}>
+                  Forgot password?
+                </Link>
               </p>
             </form>
           )}

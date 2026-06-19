@@ -5,9 +5,12 @@ import { z } from "zod";
 import { AuthError } from "next-auth";
 import bcrypt from "bcryptjs";
 import { db } from "@db/index";
-import { users } from "@db/schema";
-import { eq } from "drizzle-orm";
+import { users, verificationTokens } from "@db/schema";
+import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { randomBytes, createHash } from "crypto";
+import { env } from "@/lib/validations/env";
+import { sendEmail, passwordResetEmailHtml } from "@/lib/email";
 
 const emailSchema = z.string().email();
 
@@ -247,4 +250,149 @@ export async function signUpWithPassword(
     }
     throw err;
   }
+}
+
+// ── Password reset ────────────────────────────────────────────────────────────
+
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+const RESET_IDENTIFIER_PREFIX = "pwreset:";
+const GENERIC_RESET_MESSAGE =
+  "If an account with a password exists for that email, we've sent a reset link.";
+
+function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+export type RequestPasswordResetState =
+  | { success: true; message: string; error?: never }
+  | { success?: never; error: string };
+
+export async function requestPasswordReset(
+  _prevState: RequestPasswordResetState,
+  formData: FormData,
+): Promise<RequestPasswordResetState> {
+  const parsed = emailSchema.safeParse(formData.get("email"));
+  if (!parsed.success) {
+    return { error: "Invalid email address" };
+  }
+
+  const email = parsed.data.toLowerCase();
+
+  const [user] = await db
+    .select({ id: users.id, password: users.password })
+    .from(users)
+    .where(eq(users.email, email));
+
+  // Only accounts that already have a password are eligible. Always return the
+  // same generic message to avoid leaking which emails exist.
+  if (user?.password) {
+    const identifier = RESET_IDENTIFIER_PREFIX + email;
+
+    // Invalidate any previous reset tokens for this email.
+    await db.delete(verificationTokens).where(eq(verificationTokens.identifier, identifier));
+
+    const rawToken = randomBytes(32).toString("hex");
+    await db.insert(verificationTokens).values({
+      identifier,
+      token: hashToken(rawToken),
+      expires: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+    });
+
+    const link = `${env.NEXT_PUBLIC_APP_URL}/reset-password?token=${rawToken}&email=${encodeURIComponent(email)}`;
+
+    // In development (or whenever SMTP is unconfigured) log the link so it can
+    // be tested without a real email.
+    if (env.NODE_ENV !== "production" || !env.SMTP_HOST) {
+      console.info(`[password-reset] Reset link for ${email}: ${link}`);
+    }
+
+    await sendEmail({
+      to: email,
+      subject: "Reset your GigaHack password",
+      html: passwordResetEmailHtml(link),
+      text: `Reset your GigaHack password using this link (expires in 1 hour): ${link}`,
+    });
+  }
+
+  return { success: true, message: GENERIC_RESET_MESSAGE };
+}
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  email: z.string().email(),
+  newPassword: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string(),
+});
+
+export type ResetPasswordState =
+  | { success: true; error?: never }
+  | { success?: never; error: string };
+
+export async function resetPassword(
+  _prevState: ResetPasswordState,
+  formData: FormData,
+): Promise<ResetPasswordState> {
+  const parsed = resetPasswordSchema.safeParse({
+    token: formData.get("token"),
+    email: formData.get("email"),
+    newPassword: formData.get("newPassword"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.errors[0]?.message || "Invalid input" };
+  }
+
+  const { token, email, newPassword, confirmPassword } = parsed.data;
+
+  if (newPassword !== confirmPassword) {
+    return { error: "Passwords do not match" };
+  }
+
+  const identifier = RESET_IDENTIFIER_PREFIX + email.toLowerCase();
+  const tokenHash = hashToken(token);
+
+  const [record] = await db
+    .select()
+    .from(verificationTokens)
+    .where(
+      and(
+        eq(verificationTokens.identifier, identifier),
+        eq(verificationTokens.token, tokenHash),
+      ),
+    );
+
+  if (!record) {
+    return { error: "This reset link is invalid or has already been used." };
+  }
+
+  if (record.expires < new Date()) {
+    await db
+      .delete(verificationTokens)
+      .where(
+        and(
+          eq(verificationTokens.identifier, identifier),
+          eq(verificationTokens.token, tokenHash),
+        ),
+      );
+    return { error: "This reset link has expired. Please request a new one." };
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 12);
+  await db
+    .update(users)
+    .set({ password: hashedPassword })
+    .where(eq(users.email, email.toLowerCase()));
+
+  // Single-use: remove the token after a successful reset.
+  await db
+    .delete(verificationTokens)
+    .where(
+      and(
+        eq(verificationTokens.identifier, identifier),
+        eq(verificationTokens.token, tokenHash),
+      ),
+    );
+
+  return { success: true };
 }
