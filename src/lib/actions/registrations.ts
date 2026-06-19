@@ -53,44 +53,21 @@ export async function registerForEvent(
   const parsed = registerSchema.safeParse(raw);
   if (!parsed.success) return { error: parsed.error.issues.map((i) => i.message).join(", ") };
 
-  // Verify and claim the ticket — auto-approves on success
+  // Verify and claim the ticket — this also grants the participant role and
+  // upserts an approved registration (see ensureParticipantRegistration).
   const ticketResult = await verifyAndClaimTicket(eventId, parsed.data.ticketNumber);
   if (ticketResult.error) return { error: ticketResult.error };
 
-  // Grant participant role
-  const [existingRole] = await db
-    .select()
-    .from(eventRoles)
-    .where(and(eq(eventRoles.userId, userId), eq(eventRoles.eventId, eventId), eq(eventRoles.role, "participant")));
-  if (!existingRole) {
-    await db.insert(eventRoles).values({ userId, eventId, role: "participant" });
-  }
-
-  if (existing && existing.status === "withdrawn") {
-    await db
-      .update(eventRegistrations)
-      .set({
-        status: "approved",
-        ticketNumber: parsed.data.ticketNumber,
-        motivation: parsed.data.motivation || null,
-        skills: parsed.data.skills || null,
-        experience: parsed.data.experience || null,
-        reviewedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(eventRegistrations.id, existing.id));
-  } else {
-    await db.insert(eventRegistrations).values({
-      eventId,
-      userId,
-      status: "approved",
-      ticketNumber: parsed.data.ticketNumber,
+  // Persist the optional application fields onto the registration.
+  await db
+    .update(eventRegistrations)
+    .set({
       motivation: parsed.data.motivation || null,
       skills: parsed.data.skills || null,
       experience: parsed.data.experience || null,
-      reviewedAt: new Date(),
-    });
-  }
+      updatedAt: new Date(),
+    })
+    .where(and(eq(eventRegistrations.eventId, eventId), eq(eventRegistrations.userId, userId)));
 
   revalidatePath(`/events/${event.slug}`);
   return { success: true };

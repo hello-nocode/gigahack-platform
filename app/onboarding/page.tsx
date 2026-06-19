@@ -3,7 +3,7 @@ import type { Route } from "next";
 import { auth } from "@/lib/auth/config";
 import { getProfile } from "@/lib/actions/profile";
 import { isProfileComplete } from "@/lib/profile-utils";
-import { getEvents } from "@/lib/actions/events";
+import { getActiveEvent } from "@/lib/actions/events";
 import { hasUserClaimedTicket } from "@/lib/actions/tickets";
 import { getUserRolesForEvent, isAdmin } from "@/lib/permissions";
 import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard";
@@ -25,21 +25,13 @@ export default async function OnboardingPage({
   // Only allow internal paths as the final destination.
   const finalDestination = next && next.startsWith("/") ? next : "/dashboard";
 
-  const [profile, admin, eventList] = await Promise.all([
+  const [profile, admin, activeEvent] = await Promise.all([
     getProfile(userId),
     isAdmin(userId),
-    getEvents(),
+    getActiveEvent(),
   ]);
 
   const profileComplete = profile ? isProfileComplete(profile) : false;
-
-  // Find the active event for the participant workflow (same logic as dashboard).
-  const activeEvent =
-    eventList.find((e) =>
-      ["registration_open", "applications_open", "in_progress", "judging"].includes(e.status),
-    ) ??
-    eventList[0] ??
-    null;
 
   // Determine whether the ticket step applies. Global admins and users who hold
   // a non-participant role for the active event skip ticket verification.

@@ -5,7 +5,7 @@ import { events, eventRoles } from "@db/schema";
 import type { NewEvent } from "@db/schema";
 import { auth } from "@/lib/auth/config";
 import { isAdmin } from "@/lib/permissions";
-import { eq } from "drizzle-orm";
+import { eq, inArray, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -157,6 +157,29 @@ export async function deleteEvent(eventId: string) {
 
 export async function getEvents() {
   return db.select().from(events).orderBy(events.year);
+}
+
+// Statuses that mean an event is "live" for the participant workflow.
+const ACTIVE_EVENT_STATUSES = [
+  "registration_open",
+  "applications_open",
+  "in_progress",
+  "judging",
+] as const;
+
+/**
+ * Returns the single active event for the participant workflow, or null.
+ * The platform only ever has one event live at a time; if multiple match
+ * (edge case), the most recent year wins.
+ */
+export async function getActiveEvent() {
+  const [active] = await db
+    .select()
+    .from(events)
+    .where(inArray(events.status, [...ACTIVE_EVENT_STATUSES]))
+    .orderBy(desc(events.year))
+    .limit(1);
+  return active ?? null;
 }
 
 export async function getEventBySlug(slug: string) {

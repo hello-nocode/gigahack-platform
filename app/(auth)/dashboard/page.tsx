@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { auth } from "@/lib/auth/config";
-import { getEvents, getEventBySlug } from "@/lib/actions/events";
+import { getEvents, getEventBySlug, getActiveEvent } from "@/lib/actions/events";
 import { getChallengesForEvent, getChallengesWithSlotStatus, addSlotsToChallenge, addSlotsToAllChallenges } from "@/lib/actions/challenges";
 import { getPartnersForEvent } from "@/lib/actions/partners";
 import { getTeamsForEvent } from "@/lib/actions/teams";
@@ -220,10 +220,8 @@ export default async function DashboardPage({
   
   // If profile incomplete, we'll show a banner with link to complete it
   
-  // 2. Find active event for participant workflow
-  const activeEventForWorkflow = eventList.find((e) =>
-    ["registration_open", "applications_open", "in_progress", "judging"].includes(e.status),
-  ) ?? eventList[0] ?? null;
+  // 2. Find the single active event for the participant workflow
+  const activeEventForWorkflow = await getActiveEvent();
   
   // 3. Check if user has ticket for active event
   const hasTicket = activeEventForWorkflow && userId 

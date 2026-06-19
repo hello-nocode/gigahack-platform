@@ -13,7 +13,6 @@ import { db } from "@db/index";
 import { partnerProfiles, mentorProfiles } from "@db/schema";
 import { and, eq } from "drizzle-orm";
 import { EventStatusBadge } from "@/components/events/event-status-badge";
-import { RegisterButton } from "@/components/events/register-button";
 import { Button } from "@/components/ui/button";
 import type { Route } from "next";
 import { ArrowLeft, Pencil, ExternalLink } from "lucide-react";
@@ -122,9 +121,12 @@ export default async function EventDetailPage({
           </div>
         )}
 
-        {!admin && !isPartnerForEvent && !isMentorForEvent && event.registrationOpen && (
-          <div className="mt-4">
-            <RegisterButton eventId={event.id} eventSlug={slug} registration={myRegistration} />
+        {!admin && !isPartnerForEvent && !isMentorForEvent && event.registrationOpen && myRegistration?.status !== "approved" && (
+          <div className="mt-4 flex items-center justify-between gap-3 px-5 py-3" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+            <p style={{ fontSize: "13px", color: "var(--fg-3)" }}>Verify your ticket to register for this event.</p>
+            <Button asChild size="sm">
+              <Link href={"/onboarding" as Route}>Verify ticket</Link>
+            </Button>
           </div>
         )}
         {!admin && !isPartnerForEvent && !isMentorForEvent && !event.registrationOpen && !myRegistration && (

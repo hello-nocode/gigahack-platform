@@ -95,7 +95,7 @@ export default async function EventLandingPage({
           <div className="mt-8">
             {event.registrationOpen ? (
               <Link
-                href={isLoggedIn ? `/register/${slug}/apply` : `/login?callbackUrl=/register/${slug}/apply`}
+                href={isLoggedIn ? "/onboarding" : "/signup"}
                 className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-7 py-3.5 text-base font-semibold text-white shadow-lg transition-colors hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-950"
               >
                 Register Now <ArrowRight className="h-5 w-5" />
@@ -160,7 +160,7 @@ export default async function EventLandingPage({
           <h2 className="mb-2 text-2xl font-bold">Ready to join?</h2>
           <p className="mb-6 text-slate-400">Claim your spot before it fills up.</p>
           <Link
-            href={isLoggedIn ? `/register/${slug}/apply` : `/login?callbackUrl=/register/${slug}/apply`}
+            href={isLoggedIn ? "/onboarding" : "/signup"}
             className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-8 py-4 text-base font-semibold text-white hover:bg-blue-500 transition-colors"
           >
             Register Now <ArrowRight className="h-5 w-5" />

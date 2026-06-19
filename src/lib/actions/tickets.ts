@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@db/index";
-import { eventTickets, events, users } from "@db/schema";
+import { eventTickets, events, users, eventRegistrations, eventRoles } from "@db/schema";
 import { auth } from "@/lib/auth/config";
 import { isAdmin } from "@/lib/permissions";
 import { eq, and, isNull, isNotNull, count } from "drizzle-orm";
@@ -101,6 +101,52 @@ export type TicketClaimResult =
   | { success: true; error?: never }
   | { success?: never; error: string };
 
+/**
+ * Ensures the user is a fully-registered participant for the event:
+ * grants the `participant` role (if missing) and upserts an approved
+ * `eventRegistrations` row. Idempotent — safe to call repeatedly.
+ */
+export async function ensureParticipantRegistration(
+  userId: string,
+  eventId: string,
+  ticketNumber: string,
+): Promise<void> {
+  // Grant participant role if not already present
+  const [existingRole] = await db
+    .select({ id: eventRoles.id })
+    .from(eventRoles)
+    .where(
+      and(
+        eq(eventRoles.userId, userId),
+        eq(eventRoles.eventId, eventId),
+        eq(eventRoles.role, "participant"),
+      ),
+    );
+  if (!existingRole) {
+    await db.insert(eventRoles).values({ userId, eventId, role: "participant" });
+  }
+
+  // Upsert an approved registration (unique on event_id + user_id)
+  await db
+    .insert(eventRegistrations)
+    .values({
+      eventId,
+      userId,
+      status: "approved",
+      ticketNumber,
+      reviewedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: [eventRegistrations.eventId, eventRegistrations.userId],
+      set: {
+        status: "approved",
+        ticketNumber,
+        reviewedAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+}
+
 export async function verifyAndClaimTicket(
   eventId: string,
   ticketNumber: string,
@@ -120,13 +166,23 @@ export async function verifyAndClaimTicket(
   if (!ticket) return { error: "Ticket number not found. Please check the number and try again." };
   if (ticket.claimedBy && ticket.claimedBy !== userId)
     return { error: "This ticket has already been used by another participant." };
-  if (ticket.claimedBy === userId) return { success: true }; // idempotent re-submit
+
+  // Idempotent re-submit: ticket already claimed by this user — still make sure
+  // the participant registration exists (e.g. tickets claimed before this change).
+  if (ticket.claimedBy === userId) {
+    await ensureParticipantRegistration(userId, eventId, trimmed);
+    revalidatePath("/dashboard");
+    return { success: true };
+  }
 
   // Claim it
   await db
     .update(eventTickets)
     .set({ claimedBy: userId, claimedAt: new Date() })
     .where(eq(eventTickets.id, ticket.id));
+
+  // Register the participant for the event (role + approved registration)
+  await ensureParticipantRegistration(userId, eventId, trimmed);
 
   revalidatePath("/dashboard");
   return { success: true };
