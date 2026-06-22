@@ -1,64 +1,16 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export function PasswordSignInForm({ callbackUrl = "/dashboard" }: { callbackUrl?: string }) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const formEl = e.currentTarget;
-    const email = (formEl.elements.namedItem("email") as HTMLInputElement)?.value ?? "";
-    const password = (formEl.elements.namedItem("password") as HTMLInputElement)?.value ?? "";
-
-    setError(null);
-    setLoading(true);
-    try {
-      // next-auth/react signIn handles CSRF + secure cookies in all environments
-      // (the server-action signIn() does not reliably set the session cookie).
-      const res = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-
-      if (!res || res.error) {
-        // CredentialsSignin = wrong email/password. Anything else (e.g.
-        // MissingCSRF) usually means the browser blocked the auth cookie.
-        const code = res?.error ?? "Unknown";
-        console.error("[login] signIn failed:", code, res);
-        if (code === "CredentialsSignin") {
-          setError("Invalid email or password");
-        } else {
-          setError(
-            `Sign-in failed (${code}). Your browser may be blocking cookies — allow cookies for this site or try another browser.`,
-          );
-        }
-        setLoading(false);
-        return;
-      }
-
-      // Full navigation so the freshly-set session cookie is picked up.
-      window.location.assign(callbackUrl);
-    } catch (err) {
-      console.error("[login] signIn threw:", err);
-      setError("Something went wrong. Please try again.");
-      setLoading(false);
-    }
-  }
-
+  // Native top-level form POST to our own /api/login route. This avoids the
+  // next-auth/react signIn() XHR + CSRF-cookie flow, which privacy-aggressive
+  // browsers (Edge Tracking Prevention / InPrivate) block, causing MissingCSRF.
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && (
-        <div style={{ padding: "12px 14px", background: "rgba(255,77,77,0.08)", border: "1px solid var(--danger)", fontSize: "13px", color: "var(--danger)" }}>
-          {error}
-        </div>
-      )}
+    <form method="post" action="/api/login" className="space-y-4">
+      <input type="hidden" name="callbackUrl" value={callbackUrl} />
       <div>
         <label
           htmlFor="password-email"
@@ -93,8 +45,8 @@ export function PasswordSignInForm({ callbackUrl = "/dashboard" }: { callbackUrl
         />
       </div>
 
-      <Button type="submit" className="w-full" size="lg" disabled={loading}>
-        {loading ? "Signing in..." : "Sign In →"}
+      <Button type="submit" className="w-full" size="lg">
+        Sign In →
       </Button>
       <p className="text-center text-xs" style={{ color: "var(--fg-faint)", fontFamily: "var(--font-mono)" }}>
         <Link href="/forgot-password" style={{ color: "var(--green)" }}>
