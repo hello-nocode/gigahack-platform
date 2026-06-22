@@ -2,12 +2,13 @@
 
 import { useActionState, Suspense, useState } from "react";
 import Link from "next/link";
-import { signInWithEmail, signInWithPassword } from "@/lib/actions/auth";
-import type { SignInEmailState, SignInPasswordState } from "@/lib/actions/auth";
+import { signInWithEmail } from "@/lib/actions/auth";
+import type { SignInEmailState } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSearchParams } from "next/navigation";
 import { GoogleSignInButton } from "@/components/auth/google-signin-button";
+import { PasswordSignInForm } from "@/components/auth/password-signin-form";
 
 
 type AuthMethod = "magic" | "password";
@@ -17,19 +18,32 @@ function LoginForm() {
   const verified = searchParams.get("verify") === "1";
   const passwordReset = searchParams.get("reset") === "1";
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
-  const [authMethod, setAuthMethod] = useState<AuthMethod>("magic");
+  const [authMethod, setAuthMethod] = useState<AuthMethod>(
+    searchParams.get("error") ? "password" : "magic",
+  );
 
   const [magicState, magicAction, magicPending] = useActionState<SignInEmailState, FormData>(
     signInWithEmail,
     null as unknown as SignInEmailState,
   );
 
-  const [passwordState, passwordAction, passwordPending] = useActionState<SignInPasswordState, FormData>(
-    signInWithPassword,
-    null as unknown as SignInPasswordState,
-  );
+  // NextAuth redirects back to /login?error=... when credentials/OAuth sign-in fails.
+  const authError = searchParams.get("error");
+  const passwordError =
+    authError === "CredentialsSignin"
+      ? "Invalid email or password"
+      : authError === "OAuthAccountNotLinked"
+        ? "This email is already registered. Sign in with your email and password."
+        : authError
+          ? "Sign in failed. Please try again."
+          : null;
 
-  const state = authMethod === "magic" ? magicState : passwordState;
+  const state =
+    authMethod === "magic"
+      ? magicState
+      : passwordError
+        ? ({ error: passwordError } as SignInEmailState)
+        : null;
 
   return (
     <div
@@ -151,51 +165,7 @@ function LoginForm() {
 
           {/* Password form */}
           {authMethod === "password" && (
-            <form action={passwordAction} className="space-y-4">
-              <input type="hidden" name="callbackUrl" value={callbackUrl} />
-              <div>
-                <label
-                  htmlFor="password-email"
-                  style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--fg-3)", marginBottom: "6px" }}
-                >
-                  Email
-                </label>
-                <Input
-                  id="password-email"
-                  name="email"
-                  type="email"
-                  placeholder="ana@team.dev"
-                  required
-                  autoComplete="email"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="password"
-                  style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--fg-3)", marginBottom: "6px" }}
-                >
-                  Password
-                </label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="••••••••"
-                  required
-                  minLength={8}
-                  autoComplete="current-password"
-                />
-              </div>
-
-              <Button type="submit" className="w-full" size="lg" disabled={passwordPending}>
-                {passwordPending ? "Signing in..." : "Sign In →"}
-              </Button>
-              <p className="text-center text-xs" style={{ color: "var(--fg-faint)", fontFamily: "var(--font-mono)" }}>
-                <Link href="/forgot-password" style={{ color: "var(--green)" }}>
-                  Forgot password?
-                </Link>
-              </p>
-            </form>
+            <PasswordSignInForm callbackUrl={callbackUrl} />
           )}
         </div>
 

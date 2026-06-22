@@ -79,17 +79,17 @@ export async function signInWithPassword(
     await signIn("credentials", {
       email: parsed.data.email.toLowerCase(),
       password: parsed.data.password,
-      redirect: true,
-      redirectTo: callbackUrl,
+      redirect: false,
     });
+    
+    // Manual redirect after successful sign in
+    const { redirect } = await import("next/navigation");
+    (redirect as (url: string) => never)(callbackUrl);
+    
     return { success: true };
   } catch (err) {
     if (err instanceof AuthError) {
       return { error: "Invalid email or password" };
-    }
-    // For redirects, this is expected behavior
-    if (err instanceof Error && err.message.includes("redirect")) {
-      return { success: true };
     }
     return { error: "Invalid email or password" };
   }
