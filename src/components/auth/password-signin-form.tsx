@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export function PasswordSignInForm({ callbackUrl = "/dashboard" }: { callbackUrl?: string }) {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -14,41 +16,38 @@ export function PasswordSignInForm({ callbackUrl = "/dashboard" }: { callbackUrl
     const email = (formEl.elements.namedItem("email") as HTMLInputElement)?.value ?? "";
     const password = (formEl.elements.namedItem("password") as HTMLInputElement)?.value ?? "";
 
+    setError(null);
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/csrf");
-      const { csrfToken } = (await res.json()) as { csrfToken: string };
-
-      // POST directly to the NextAuth credentials callback. The browser follows
-      // the 302 redirect and the session cookie is set natively (Auth.js v5 does
-      // not reliably set cookies when signIn() is called from a server action).
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = "/api/auth/callback/credentials";
-
-      const fields: Record<string, string> = {
-        csrfToken,
+      // next-auth/react signIn handles CSRF + secure cookies in all environments
+      // (the server-action signIn() does not reliably set the session cookie).
+      const res = await signIn("credentials", {
         email,
         password,
-        callbackUrl,
-      };
-      for (const [name, value] of Object.entries(fields)) {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = name;
-        input.value = value;
-        form.appendChild(input);
+        redirect: false,
+      });
+
+      if (!res || res.error) {
+        setError("Invalid email or password");
+        setLoading(false);
+        return;
       }
 
-      document.body.appendChild(form);
-      form.submit();
+      // Full navigation so the freshly-set session cookie is picked up.
+      window.location.assign(callbackUrl);
     } catch {
+      setError("Something went wrong. Please try again.");
       setLoading(false);
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {error && (
+        <div style={{ padding: "12px 14px", background: "rgba(255,77,77,0.08)", border: "1px solid var(--danger)", fontSize: "13px", color: "var(--danger)" }}>
+          {error}
+        </div>
+      )}
       <div>
         <label
           htmlFor="password-email"
