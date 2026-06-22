@@ -28,14 +28,25 @@ export function PasswordSignInForm({ callbackUrl = "/dashboard" }: { callbackUrl
       });
 
       if (!res || res.error) {
-        setError("Invalid email or password");
+        // CredentialsSignin = wrong email/password. Anything else (e.g.
+        // MissingCSRF) usually means the browser blocked the auth cookie.
+        const code = res?.error ?? "Unknown";
+        console.error("[login] signIn failed:", code, res);
+        if (code === "CredentialsSignin") {
+          setError("Invalid email or password");
+        } else {
+          setError(
+            `Sign-in failed (${code}). Your browser may be blocking cookies — allow cookies for this site or try another browser.`,
+          );
+        }
         setLoading(false);
         return;
       }
 
       // Full navigation so the freshly-set session cookie is picked up.
       window.location.assign(callbackUrl);
-    } catch {
+    } catch (err) {
+      console.error("[login] signIn threw:", err);
       setError("Something went wrong. Please try again.");
       setLoading(false);
     }
