@@ -426,6 +426,16 @@ export async function getJoinRequestsForTeam(teamId: string) {
       name: users.name,
       email: users.email,
       image: users.image,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      phone: users.phone,
+      gender: users.gender,
+      university: users.university,
+      jobTitle: users.jobTitle,
+      expertiseDomain: users.expertiseDomain,
+      linkedin: users.linkedin,
+      cvUrl: users.cvUrl,
+      avatarUrl: users.avatarUrl,
     })
     .from(teamJoinRequests)
     .innerJoin(users, eq(users.id, teamJoinRequests.userId))

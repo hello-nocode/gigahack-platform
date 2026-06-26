@@ -3,10 +3,11 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth/config";
 import { isAdmin } from "@/lib/permissions";
 import { getEventBySlug } from "@/lib/actions/events";
-import { getTeamWithMembers, getTeamApplications, getJoinRequestsForTeam, reviewJoinRequest } from "@/lib/actions/teams";
+import { getTeamWithMembers, getTeamApplications, getJoinRequestsForTeam } from "@/lib/actions/teams";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Pencil, Check, X, Lock } from "lucide-react";
+import { ArrowLeft, Pencil, Lock } from "lucide-react";
 import { RemoveMemberButton } from "@/components/teams/remove-member-button";
+import { JoinRequestsPanel } from "@/components/teams/join-requests-panel";
 
 export default async function TeamDetailPage({
   params,
@@ -121,31 +122,8 @@ export default async function TeamDetailPage({
           )}
         </div>
 
-        {(isLeader || admin) && !isCompleted && pendingRequests.length > 0 && (
-          <div className="mt-4 p-6" style={{ background: "rgba(232,229,83,0.06)", border: "1px solid var(--warn)" }}>
-            <p className="gh-kicker mb-4" style={{ color: "var(--warn)" }}>» Join Requests ({pendingRequests.length})</p>
-            <div className="space-y-2">
-              {pendingRequests.map((req) => (
-                <div key={req.id} className="flex items-center justify-between px-4 py-3" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
-                  <div className="flex items-center gap-3">
-                    {req.image && <img src={req.image} alt="" style={{ width: 32, height: 32, borderRadius: "50%" }} />}
-                    <div>
-                      <p style={{ fontSize: "14px", fontWeight: 500 }}>{req.name ?? req.email}</p>
-                      {req.message && <p style={{ fontSize: "12px", color: "var(--fg-3)", marginTop: "2px" }}>{req.message}</p>}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <form action={async () => { "use server"; await reviewJoinRequest(req.id, "accepted"); }}>
-                      <Button type="submit" size="sm"><Check className="mr-1 h-3.5 w-3.5" />Accept</Button>
-                    </form>
-                    <form action={async () => { "use server"; await reviewJoinRequest(req.id, "rejected"); }}>
-                      <Button type="submit" size="sm" variant="destructive"><X className="mr-1 h-3.5 w-3.5" />Reject</Button>
-                    </form>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+        {(isLeader || admin) && !isCompleted && (
+          <JoinRequestsPanel requests={pendingRequests} />
         )}
       </div>
     </main>
